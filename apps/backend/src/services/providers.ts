@@ -3,12 +3,68 @@ import jwt from 'jsonwebtoken';
 type FNBSession = { token: string; allyId: string; expiresAt: Date };
 let fnbSession: FNBSession | null = null;
 
+// Simple health tracking
+type ProviderHealth = {
+    status: 'healthy' | 'blocked';
+    lastError: string | null;
+    blockedUntil: Date | null;
+};
+
+const fnbHealth: ProviderHealth = { status: 'healthy', lastError: null, blockedUntil: null };
+const gasoHealth: ProviderHealth = { status: 'healthy', lastError: null, blockedUntil: null };
+
+const BLOCK_DURATION_MS = 30 * 60 * 1000; // 30 minutes
+
+function markProviderBlocked(health: ProviderHealth, errorMsg: string) {
+    health.status = 'blocked';
+    health.lastError = errorMsg;
+    health.blockedUntil = new Date(Date.now() + BLOCK_DURATION_MS);
+    console.error(`Provider blocked until ${health.blockedUntil.toISOString()}: ${errorMsg}`);
+}
+
+function markProviderHealthy(health: ProviderHealth) {
+    health.status = 'healthy';
+    health.lastError = null;
+    health.blockedUntil = null;
+}
+
+function isProviderAvailable(health: ProviderHealth): boolean {
+    if (health.status === 'healthy') return true;
+    if (health.blockedUntil && new Date() > health.blockedUntil) {
+        markProviderHealthy(health);
+        return true;
+    }
+    return false;
+}
+
+export function getProvidersHealth() {
+    return {
+        fnb: {
+            status: fnbHealth.status,
+            available: isProviderAvailable(fnbHealth),
+            lastError: fnbHealth.lastError,
+            blockedUntil: fnbHealth.blockedUntil?.toISOString() || null
+        },
+        gaso: {
+            status: gasoHealth.status,
+            available: isProviderAvailable(gasoHealth),
+            lastError: gasoHealth.lastError,
+            blockedUntil: gasoHealth.blockedUntil?.toISOString() || null
+        }
+    };
+}
+
 async function getFNBSession(): Promise<FNBSession> {
     if (fnbSession && fnbSession.expiresAt > new Date()) return fnbSession;
 
     const response = await fetch(`${process.env.CALIDDA_BASE_URL}/FNB_Services/api/Seguridad/autenticar`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        headers: { 
+            "content-type": "application/json",
+            "origin": "https://appweb.calidda.com.pe",
+            "referer": "https://appweb.calidda.com.pe/WebFNB/login",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        },
         body: JSON.stringify({
             usuario: process.env.CALIDDA_USERNAME,
             password: process.env.CALIDDA_PASSWORD,
@@ -18,10 +74,24 @@ async function getFNBSession(): Promise<FNBSession> {
         })
     });
 
-    if (!response.ok) throw new Error(`FNB Auth Failed: ${response.status}`);
+    if (!response.ok) {
+        const errorMsg = `FNB Auth HTTP ${response.status}`;
+        markProviderBlocked(fnbHealth, errorMsg);
+        throw new Error(errorMsg);
+    }
+    
     const data = await response.json();
     
-    if (!data.valid || !data.data?.authToken) throw new Error(`FNB Auth Invalid: ${data.message}`);
+    if (!data.valid || !data.data?.authToken) {
+        const errorMsg = `FNB Auth Invalid: ${data.message || 'No token'}`;
+        
+        // Check for blocked user
+        if (data.message && data.message.toLowerCase().includes('bloqueado')) {
+            markProviderBlocked(fnbHealth, errorMsg);
+        }
+        
+        throw new Error(errorMsg);
+    }
 
     const decoded = jwt.decode(data.data.authToken) as any;
     
@@ -31,11 +101,18 @@ async function getFNBSession(): Promise<FNBSession> {
         expiresAt: new Date(Date.now() + 3500 * 1000)
     };
     
+    markProviderHealthy(fnbHealth);
     return fnbSession;
 }
 
 export const FNBProvider = {
     async checkCredit(dni: string) {
+        // Check if provider is blocked
+        if (!isProviderAvailable(fnbHealth)) {
+            console.warn(`FNB provider is blocked until ${fnbHealth.blockedUntil?.toISOString()}`);
+            return { eligible: false, credit: 0, reason: 'provider_unavailable' };
+        }
+        
         try {
             const session = await getFNBSession();
             const params = new URLSearchParams({
@@ -142,6 +219,12 @@ async function queryPowerBI(dni: string, propertyName: string, visualId: string)
 
 export const GasoProvider = {
     async checkEligibility(dni: string) {
+        // Check if provider is blocked
+        if (!isProviderAvailable(gasoHealth)) {
+            console.warn(`Gaso provider is blocked until ${gasoHealth.blockedUntil?.toISOString()}`);
+            return { eligible: false, credit: 0, reason: 'provider_unavailable' };
+        }
+        
         try {
             const [estado, nombre, saldoStr, nseStr, serviceCutsStr, habilitadoStr] = await Promise.all([
                 queryPowerBI(dni, "Estado", VISUAL_IDS.estado),
@@ -157,14 +240,23 @@ export const GasoProvider = {
             }
 
             let credit = 0;
-            if (saldoStr) {
+            if (saldoStr && saldoStr !== 'undefined') {
                 const clean = saldoStr.replace("S/", "").trim().replace(/\./g, "").replace(",", ".");
-                credit = parseFloat(clean);
+                credit = parseFloat(clean) || 0;
             }
 
-            const nse = nseStr ? parseInt(nseStr, 10) : undefined;
-            const cuts = serviceCutsStr ? parseInt(serviceCutsStr, 10) : 0;
-            const habilitado = habilitadoStr?.toUpperCase() === "SI";
+            const nse = (nseStr && nseStr !== 'undefined') ? parseInt(nseStr, 10) : undefined;
+            const cuts = (serviceCutsStr && serviceCutsStr !== 'undefined') ? parseInt(serviceCutsStr, 10) : 0;
+            
+            // When habilitado field is undefined/missing, treat as eligible (installation already done)
+            // When it explicitly says "NO", then installation is pending
+            let habilitado = true; // Default to true when field is missing
+            
+            if (habilitadoStr && habilitadoStr !== 'undefined') {
+                const habilitadoUpper = habilitadoStr.toUpperCase().trim();
+                // Explicitly check for "NO" - if it says NO, not enabled
+                habilitado = habilitadoUpper !== "NO" && habilitadoUpper !== "0" && habilitadoUpper !== "FALSE";
+            }
 
             if (!habilitado) return { eligible: false, credit, reason: 'installation_pending', name: nombre };
             if (cuts > 1) return { eligible: false, credit, reason: 'service_cuts_exceeded', name: nombre };
@@ -179,6 +271,15 @@ export const GasoProvider = {
 
         } catch (error) {
             console.error('Gaso Provider Error:', error);
+            
+            // Mark as blocked if it's a persistent auth/connection error
+            if (error instanceof Error) {
+                const msg = error.message.toLowerCase();
+                if (msg.includes('auth') || msg.includes('401') || msg.includes('403') || msg.includes('bloqueado')) {
+                    markProviderBlocked(gasoHealth, error.message);
+                }
+            }
+            
             return { eligible: false, credit: 0, reason: 'api_error' };
         }
     }

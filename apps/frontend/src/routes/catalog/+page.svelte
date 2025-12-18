@@ -59,6 +59,9 @@
 </script>
 
 <div class="p-6">
+    <div class="mb-4">
+        <a href="/" class="text-blue-600 hover:underline text-sm">← Volver al inicio</a>
+    </div>
     <div class="flex justify-between mb-6">
         <h1 class="text-2xl font-bold">Catálogo de productos</h1>
         <div class="flex gap-2">

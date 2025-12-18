@@ -9,6 +9,7 @@ import { CatalogService } from './services/catalog';
 import { WhatsAppService } from './services/whatsapp';
 import { BulkImportService } from './services/bulk-import';
 import { ReportService } from './services/reports';
+import { getProvidersHealth } from './services/providers';
 import { 
     generateSessionToken, 
     createSession, 
@@ -144,6 +145,72 @@ app.get('/api/reports/daily', (c) => {
     c.header('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     c.header('Content-Disposition', `attachment; filename="report-${new Date().toISOString().split('T')[0]}.xlsx"`);
     return c.body(buffer);
+});
+
+app.get('/api/health', (c) => {
+    const health = getProvidersHealth();
+    const allHealthy = health.fnb.available && health.gaso.available;
+    
+    return c.json({
+        status: allHealthy ? 'healthy' : 'degraded',
+        providers: health,
+        timestamp: new Date().toISOString()
+    });
+});
+
+app.get('/api/providers/:dni', async (c) => {
+    const dni = c.req.param('dni');
+    
+    if (!dni) {
+        return c.json({ error: 'DNI es requerido' }, 400);
+    }
+    
+    if (!/^\d{8}$/.test(dni)) {
+        return c.json({ error: 'DNI debe tener 8 dígitos' }, 400);
+    }
+    
+    const { FNBProvider, GasoProvider } = await import('./services/providers');
+    const healthStatus = getProvidersHealth();
+    
+    try {
+        // Try FNB first (if available)
+        let fnbResult = null;
+        if (healthStatus.fnb.available) {
+            fnbResult = await FNBProvider.checkCredit(dni);
+            if (fnbResult.eligible) {
+                return c.json({ provider: 'fnb', dni, result: fnbResult, providersChecked: ['fnb'] });
+            }
+        }
+        
+        // If not found in FNB, try Gaso (if available)
+        let gasoResult = null;
+        if (healthStatus.gaso.available) {
+            gasoResult = await GasoProvider.checkEligibility(dni);
+            if (gasoResult.eligible || gasoResult.reason !== 'not_found') {
+                const checked = healthStatus.fnb.available ? ['fnb', 'gaso'] : ['gaso'];
+                return c.json({ provider: 'gaso', dni, result: gasoResult, providersChecked: checked });
+            }
+        }
+        
+        // Not found in either or both providers unavailable
+        const checked: string[] = [];
+        if (healthStatus.fnb.available) checked.push('fnb');
+        if (healthStatus.gaso.available) checked.push('gaso');
+        
+        return c.json({ 
+            provider: null, 
+            dni, 
+            result: { eligible: false, credit: 0, reason: 'not_found' },
+            providersChecked: checked,
+            providersUnavailable: !healthStatus.fnb.available || !healthStatus.gaso.available ? {
+                fnb: !healthStatus.fnb.available,
+                gaso: !healthStatus.gaso.available
+            } : undefined
+        });
+    } catch (error) {
+        console.error('Provider query error:', error);
+        return c.json({ error: 'Error al consultar proveedor' }, 500);
+    }
 });
 
 app.get('/webhook', (c) => {

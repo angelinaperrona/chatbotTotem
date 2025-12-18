@@ -34,6 +34,9 @@
 
 <div class="flex h-screen">
     <div class="w-1/3 border-r bg-gray-50 p-4 overflow-y-auto">
+        <div class="mb-4">
+            <a href="/" class="text-blue-600 hover:underline text-sm">← Inicio</a>
+        </div>
         <h2 class="font-bold mb-4">Inbox</h2>
         {#each conversations as conv}
             <button onclick={() => selectedPhone = conv.phone_number} class="w-full text-left p-3 hover:bg-gray-200 rounded border-b">
