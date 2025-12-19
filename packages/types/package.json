@@ -1,8 +1,8 @@
 {
-  "name": "@totem/types",
-  "version": "1.0.0",
-  "type": "module",
-  "exports": {
-    ".": "./src/index.ts"
-  }
+    "name": "@totem/types",
+    "version": "1.0.0",
+    "type": "module",
+    "exports": {
+        ".": "./src/index.ts"
+    }
 }

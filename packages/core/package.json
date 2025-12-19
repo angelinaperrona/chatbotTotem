@@ -1,11 +1,11 @@
 {
-  "name": "@totem/core",
-  "version": "1.0.0",
-  "type": "module",
-  "exports": {
-    ".": "./src/index.ts"
-  },
-  "dependencies": {
-    "@totem/types": "workspace:*"
-  }
+    "name": "@totem/core",
+    "version": "1.0.0",
+    "type": "module",
+    "exports": {
+        ".": "./src/index.ts"
+    },
+    "dependencies": {
+        "@totem/types": "workspace:*"
+    }
 }

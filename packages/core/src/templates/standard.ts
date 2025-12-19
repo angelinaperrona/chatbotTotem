@@ -1,7 +1,7 @@
 export const GREETING = `¡Hola! Somos Tótem, aliados de Cálidda. ¿Eres el titular de tu servicio Cálidda?`;
 
 export const GREETING_RETURNING = (category: string) =>
-  `¡Hola de nuevo! Veo que anteriormente te interesaron nuestros ${category}. ¿Quieres continuar donde lo dejamos?`;
+    `¡Hola de nuevo! Veo que anteriormente te interesaron nuestros ${category}. ¿Quieres continuar donde lo dejamos?`;
 
 export const CONFIRM_CLIENT_YES = `Perfecto. Por favor, indícame tu número de DNI (8 dígitos) para verificar tus beneficios.`;
 
@@ -14,12 +14,12 @@ export const CHECKING_SYSTEM = `Consultando el sistema... ⏳`;
 export const NOT_ELIGIBLE = `Lamentablemente, en este momento no podemos ofrecerte nuestros productos según nuestras políticas internas. Gracias por tu comprensión.`;
 
 export const ASK_AGE = (name: string) =>
-  `Hola ${name}, para continuar con tu solicitud, ¿cuántos años tienes?`;
+    `Hola ${name}, para continuar con tu solicitud, ¿cuántos años tienes?`;
 
 export const INVALID_AGE = `Por favor, indícame tu edad en números (ejemplo: 35).`;
 
 export const AGE_TOO_LOW = (minAge: number) =>
-  `Para acceder a este beneficio, debes tener al menos ${minAge} años según las políticas de Cálidda.`;
+    `Para acceder a este beneficio, debes tener al menos ${minAge} años según las políticas de Cálidda.`;
 
 export const UNCLEAR_RESPONSE = `Disculpa, no entendí tu respuesta. ¿Podrías explicarlo de nuevo?`;
 

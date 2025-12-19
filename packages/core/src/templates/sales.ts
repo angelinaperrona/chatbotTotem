@@ -1,5 +1,5 @@
 export const FNB_APPROVED = (name: string, credit: number) =>
-  `¡Excelente noticia, ${name}! Tienes una línea de crédito aprobada de S/ ${credit.toFixed(2)}. Tenemos celulares, laptops, televisores, electrodomésticos y más. ¿Qué tipo de producto te interesa?`;
+    `¡Excelente noticia, ${name}! Tienes una línea de crédito aprobada de S/ ${credit.toFixed(2)}. Tenemos celulares, laptops, televisores, electrodomésticos y más. ¿Qué tipo de producto te interesa?`;
 
 export const GASO_OFFER_KITCHEN_BUNDLE = `¡Calificas para nuestro programa! Tenemos combos especiales que incluyen cocina + electrodomésticos con cuotas desde S/ 80 mensuales. ¿Te gustaría conocer las opciones?`;
 
@@ -8,7 +8,7 @@ export const KITCHEN_OBJECTION_RESPONSE = `Entiendo tu preferencia. Te comento q
 export const THERMA_ALTERNATIVE = `Como alternativa, también tenemos combos con termas. ¿Te interesaría explorar esa opción?`;
 
 export const OFFER_PRODUCTS = (category: string) =>
-  `Perfecto, aquí están nuestras mejores opciones en ${category}:`;
+    `Perfecto, aquí están nuestras mejores opciones en ${category}:`;
 
 export const ASK_PRODUCT_INTEREST = `¿Qué producto te gustaría conocer? Tenemos celulares, cocinas, laptops, refrigeradoras, televisores y más.`;
 
@@ -16,8 +16,11 @@ export const CONFIRM_SELECTION = `¡Excelente elección! Un asesor se comunicar�
 
 export const ASK_FOR_SPECS = `Si necesitas más detalles técnicos de algún producto, solo pregúntame. ¿Cuál te interesa más?`;
 
-export const INSTALLMENTS_INFO = (installments: number, monthlyPayment: number) =>
-  `Este producto se puede pagar en ${installments} cuotas mensuales de aproximadamente S/ ${monthlyPayment.toFixed(2)} cada una.`;
+export const INSTALLMENTS_INFO = (
+    installments: number,
+    monthlyPayment: number,
+) =>
+    `Este producto se puede pagar en ${installments} cuotas mensuales de aproximadamente S/ ${monthlyPayment.toFixed(2)} cada una.`;
 
 export const OUT_OF_CATALOG_REQUEST = `Ese producto específico no está en mi catálogo actual, pero un asesor puede ayudarte con opciones personalizadas. Te contactaremos pronto.`;
 

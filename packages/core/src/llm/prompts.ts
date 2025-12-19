@@ -14,7 +14,7 @@ Classification rules:
 Be lenient with informal Spanish and typos.`;
 
 export const ENTITY_EXTRACTION_PROMPT = (entityType: string) =>
-  `Extract the ${entityType} from this Spanish message.
+    `Extract the ${entityType} from this Spanish message.
 
 Return ONLY valid JSON: {"value": string|number|null}
 
