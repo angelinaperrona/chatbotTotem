@@ -1,0 +1,12 @@
+{
+  "root": false,
+  "extends": "//",
+  "linter": {
+    "rules": {
+      "correctness": {
+        "recommended": true,
+        "noUnusedImports": "off"
+      }
+    }
+  }
+}
