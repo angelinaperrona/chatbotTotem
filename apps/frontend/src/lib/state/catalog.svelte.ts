@@ -1,7 +1,8 @@
+import { SvelteSet } from "svelte/reactivity";
 import type { Product } from "@totem/types";
 
 function createCatalogState() {
-    let selectedIds = $state<Set<string>>(new Set());
+    let selectedIds = new SvelteSet<string>();
 
     return {
         get selectedIds() {
@@ -16,13 +17,12 @@ function createCatalogState() {
             } else {
                 selectedIds.add(id);
             }
-            selectedIds = selectedIds;
         },
         selectAll(products: Product[]) {
-            selectedIds = new Set(products.map((p) => p.id));
+            selectedIds = new SvelteSet(products.map((p) => p.id));
         },
         clear() {
-            selectedIds = new Set();
+            selectedIds = new SvelteSet();
         },
         isSelected(id: string) {
             return selectedIds.has(id);
