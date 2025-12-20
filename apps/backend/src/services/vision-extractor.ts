@@ -20,7 +20,9 @@ export type ExtractedProductData = {
  * Extract product data from main flyer image
  * Focuses on: name, price, installments, category
  */
-async function extractFromMainFlyer(imageBuffer: Buffer): Promise<Partial<ExtractedProductData>> {
+async function extractFromMainFlyer(
+    imageBuffer: Buffer,
+): Promise<Partial<ExtractedProductData>> {
     try {
         const base64Image = imageBuffer.toString("base64");
         const mimeType = "image/jpeg";
@@ -79,8 +81,12 @@ Ejemplo de respuesta correcta:
         // Clean and validate extracted data
         return {
             name: parsed.name || null,
-            price: parsed.price ? parseFloat(String(parsed.price).replace(/[,\s]/g, "")) : null,
-            installments: parsed.installments ? parseInt(String(parsed.installments), 10) : null,
+            price: parsed.price
+                ? parseFloat(String(parsed.price).replace(/[,\s]/g, ""))
+                : null,
+            installments: parsed.installments
+                ? parseInt(String(parsed.installments), 10)
+                : null,
             category: parsed.category || null,
         };
     } catch (error) {
@@ -171,7 +177,7 @@ export async function extractProductData(
 
     // Wait a bit to avoid rate limits (sequential processing)
     if (specsImageBuffer) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise((resolve) => setTimeout(resolve, 1000));
     }
 
     // Extract from specs flyer if provided

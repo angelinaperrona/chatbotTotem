@@ -358,7 +358,10 @@ export const GasoProvider = {
                 return {
                     eligible: false,
                     credit,
-                    reason: credit === 0 ? "no_credit_line" : "not_eligible_per_calidda",
+                    reason:
+                        credit === 0
+                            ? "no_credit_line"
+                            : "not_eligible_per_calidda",
                     name: nombre,
                 };
             }

@@ -1,19 +1,19 @@
 {
-  "root": false,
-  "extends": "//",
-  "linter": {
-    "rules": {
-      "correctness": {
-        "recommended": true,
-        "noUnusedImports": "off"
-      },
-      "complexity": {
-        "noExcessiveCognitiveComplexity": {
-          "options": {
-            "maxAllowedComplexity": 17
-          }
+    "root": false,
+    "extends": "//",
+    "linter": {
+        "rules": {
+            "correctness": {
+                "recommended": true,
+                "noUnusedImports": "off"
+            },
+            "complexity": {
+                "noExcessiveCognitiveComplexity": {
+                    "options": {
+                        "maxAllowedComplexity": 17
+                    }
+                }
+            }
         }
-      }
     }
-  }
 }

@@ -143,7 +143,7 @@ function handleCollectDNI(message: string, context: any): StateOutput {
     }
 
     const lower = message.toLowerCase();
-    
+
     // Check if user is expressing they can't provide DNI right now or will send it later
     const cantProvideNow = /\b(no\s+(lo\s+)?tengo|no\s+tengo\s+a\s+la\s+mano|voy\s+a\s+buscar|déjame\s+buscar|un\s+momento|espera|buscando|no\s+me\s+acuerdo|no\s+sé|no\s+se|no\s+lo\s+encuentro)\b/.test(lower);
     const willSendLater = /\b(te\s+(mando|envío|envio|escribo)|en\s+un\s+rato|más\s+tarde|mas\s+tarde|luego|después|despues|ahora\s+no|ahorita\s+no)\b/.test(lower);
@@ -156,7 +156,7 @@ function handleCollectDNI(message: string, context: any): StateOutput {
             updatedContext: {},
         };
     }
-    
+
     // If they can't provide it now, respond once with waiting message
     if (cantProvideNow) {
         // Only send the waiting message if we haven't already
@@ -174,7 +174,7 @@ function handleCollectDNI(message: string, context: any): StateOutput {
             updatedContext: {},
         };
     }
-    
+
     // Check for pure acknowledgment/conversational messages that don't need a response
     const isAcknowledgment = /^(gracias|ok|vale|entendido|perfecto|bien|listo|ya|ahora|bueno|dale)[!.\s,]*$/i.test(message.trim());
     if (isAcknowledgment) {
@@ -184,7 +184,7 @@ function handleCollectDNI(message: string, context: any): StateOutput {
             updatedContext: {},
         };
     }
-    
+
     // Check for completely unclear/off-topic responses
     const veryShort = message.trim().length <= 3;
     if (veryShort) {

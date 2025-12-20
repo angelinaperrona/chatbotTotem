@@ -6,122 +6,122 @@ const PHONE_ID = process.env.WHATSAPP_PHONE_ID;
 const PUBLIC_URL = process.env.PUBLIC_URL || "http://localhost:3000";
 
 export const WhatsAppService = {
-  async sendMessage(to: string, content: string): Promise<void> {
-    if (!TOKEN || !PHONE_ID) {
-      console.warn("WhatsApp not configured, message not sent:", content);
-      this.logMessage(to, "outbound", "text", content, "skipped");
-      return;
-    }
-
-    try {
-      const response = await fetch(
-        `https://graph.facebook.com/v17.0/${PHONE_ID}/messages`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${TOKEN}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            messaging_product: "whatsapp",
-            to,
-            type: "text",
-            text: { body: content },
-          }),
+    async sendMessage(to: string, content: string): Promise<void> {
+        if (!TOKEN || !PHONE_ID) {
+            console.warn("WhatsApp not configured, message not sent:", content);
+            this.logMessage(to, "outbound", "text", content, "skipped");
+            return;
         }
-      );
 
-      const status = response.ok ? "sent" : "failed";
-      this.logMessage(to, "outbound", "text", content, status);
-    } catch (error) {
-      console.error("WhatsApp send error:", error);
-      this.logMessage(to, "outbound", "text", content, "failed");
-    }
-  },
+        try {
+            const response = await fetch(
+                `https://graph.facebook.com/v17.0/${PHONE_ID}/messages`,
+                {
+                    method: "POST",
+                    headers: {
+                        Authorization: `Bearer ${TOKEN}`,
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        messaging_product: "whatsapp",
+                        to,
+                        type: "text",
+                        text: { body: content },
+                    }),
+                },
+            );
 
-  async sendImage(
-    to: string,
-    imagePath: string,
-    caption?: string
-  ): Promise<void> {
-    if (!TOKEN || !PHONE_ID) {
-      console.warn("WhatsApp not configured, image not sent:", imagePath);
-      this.logMessage(to, "outbound", "image", imagePath, "skipped");
-      return;
-    }
-
-    const link = `${PUBLIC_URL}/static/${imagePath}`;
-
-    try {
-      const payload: any = {
-        messaging_product: "whatsapp",
-        to,
-        type: "image",
-        image: { link },
-      };
-
-      if (caption) {
-        payload.image.caption = caption;
-      }
-
-      const response = await fetch(
-        `https://graph.facebook.com/v17.0/${PHONE_ID}/messages`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${TOKEN}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(payload),
+            const status = response.ok ? "sent" : "failed";
+            this.logMessage(to, "outbound", "text", content, status);
+        } catch (error) {
+            console.error("WhatsApp send error:", error);
+            this.logMessage(to, "outbound", "text", content, "failed");
         }
-      );
+    },
 
-      const status = response.ok ? "sent" : "failed";
-      this.logMessage(to, "outbound", "image", imagePath, status);
-    } catch (error) {
-      console.error("WhatsApp send image error:", error);
-      this.logMessage(to, "outbound", "image", imagePath, "failed");
-    }
-  },
+    async sendImage(
+        to: string,
+        imagePath: string,
+        caption?: string,
+    ): Promise<void> {
+        if (!TOKEN || !PHONE_ID) {
+            console.warn("WhatsApp not configured, image not sent:", imagePath);
+            this.logMessage(to, "outbound", "image", imagePath, "skipped");
+            return;
+        }
 
-  logMessage(
-    phoneNumber: string,
-    direction: "inbound" | "outbound",
-    type: "text" | "image",
-    content: string,
-    status: string = "sent"
-  ): void {
-    const id = crypto.randomUUID();
-    db.prepare(
-      `INSERT INTO messages (id, phone_number, direction, type, content, status) 
-       VALUES (?, ?, ?, ?, ?, ?)`
-    ).run(id, phoneNumber, direction, type, content, status);
-  },
+        const link = `${PUBLIC_URL}/static/${imagePath}`;
 
-  getMessageHistory(
-    phoneNumber: string,
-    limit: number = 50
-  ): Array<{
-    id: string;
-    direction: string;
-    type: string;
-    content: string;
-    status: string;
-    created_at: string;
-  }> {
-    return db
-      .prepare(
-        `SELECT * FROM messages 
+        try {
+            const payload: any = {
+                messaging_product: "whatsapp",
+                to,
+                type: "image",
+                image: { link },
+            };
+
+            if (caption) {
+                payload.image.caption = caption;
+            }
+
+            const response = await fetch(
+                `https://graph.facebook.com/v17.0/${PHONE_ID}/messages`,
+                {
+                    method: "POST",
+                    headers: {
+                        Authorization: `Bearer ${TOKEN}`,
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify(payload),
+                },
+            );
+
+            const status = response.ok ? "sent" : "failed";
+            this.logMessage(to, "outbound", "image", imagePath, status);
+        } catch (error) {
+            console.error("WhatsApp send image error:", error);
+            this.logMessage(to, "outbound", "image", imagePath, "failed");
+        }
+    },
+
+    logMessage(
+        phoneNumber: string,
+        direction: "inbound" | "outbound",
+        type: "text" | "image",
+        content: string,
+        status: string = "sent",
+    ): void {
+        const id = crypto.randomUUID();
+        db.prepare(
+            `INSERT INTO messages (id, phone_number, direction, type, content, status) 
+       VALUES (?, ?, ?, ?, ?, ?)`,
+        ).run(id, phoneNumber, direction, type, content, status);
+    },
+
+    getMessageHistory(
+        phoneNumber: string,
+        limit: number = 50,
+    ): Array<{
+        id: string;
+        direction: string;
+        type: string;
+        content: string;
+        status: string;
+        created_at: string;
+    }> {
+        return db
+            .prepare(
+                `SELECT * FROM messages 
          WHERE phone_number = ? 
          ORDER BY created_at DESC, ROWID DESC 
-         LIMIT ?`
-      )
-      .all(phoneNumber, limit) as any[];
-  },
+         LIMIT ?`,
+            )
+            .all(phoneNumber, limit) as any[];
+    },
 
-  clearMessageHistory(phoneNumber: string): void {
-    db.prepare(
-      `DELETE FROM messages WHERE phone_number = ?`
-    ).run(phoneNumber);
-  },
+    clearMessageHistory(phoneNumber: string): void {
+        db.prepare(`DELETE FROM messages WHERE phone_number = ?`).run(
+            phoneNumber,
+        );
+    },
 };
