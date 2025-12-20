@@ -2,6 +2,7 @@
 import { onMount } from "svelte";
 import { auth } from "$lib/state/auth.svelte";
 import DashboardGridItem from "$lib/components/shared/dashboard-grid-item.svelte";
+import PageTitle from "$lib/components/shared/page-title.svelte";
 
 onMount(async () => {
     if (!auth.isAuthenticated) {
@@ -9,6 +10,8 @@ onMount(async () => {
     }
 });
 </script>
+
+<PageTitle title="Dashboard" />
 
 <div class="h-screen w-full flex flex-col md:flex-row bg-cream-100 overflow-hidden">
 	<div class="w-full md:w-1/3 lg:w-1/4 bg-cream-50 border-b md:border-b-0 md:border-r border-ink-900/10 p-12 flex flex-col justify-between">

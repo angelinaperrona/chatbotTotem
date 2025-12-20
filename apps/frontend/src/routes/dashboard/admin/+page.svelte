@@ -7,6 +7,7 @@ import PageHeader from "$lib/components/shared/page-header.svelte";
 import UserForm from "$lib/components/admin/user-form.svelte";
 import UserTable from "$lib/components/admin/user-table.svelte";
 import StatsCard from "$lib/components/admin/stats-card.svelte";
+import PageTitle from "$lib/components/shared/page-title.svelte";
 
 let users = $state<any[]>([]);
 
@@ -27,6 +28,8 @@ onMount(() => {
     loadUsers();
 });
 </script>
+
+<PageTitle title="Administración" />
 
 <div class="max-w-6xl mx-auto p-8 md:p-12 min-h-screen">
 	<PageHeader title="Gestión de usuarios" subtitle="Configuración" />

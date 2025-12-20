@@ -6,6 +6,7 @@ import PageHeader from "$lib/components/shared/page-header.svelte";
 import Button from "$lib/components/ui/button.svelte";
 import Input from "$lib/components/ui/input.svelte";
 import MessageBubble from "$lib/components/conversations/message-bubble.svelte";
+import PageTitle from "$lib/components/shared/page-title.svelte";
 
 let testPhone = $state("51900000001");
 let messages = $state<any[]>([]);
@@ -91,6 +92,8 @@ onMount(() => {
     loadConversation();
 });
 </script>
+
+<PageTitle title="Simulador" />
 
 <div class="max-w-5xl mx-auto p-8 md:p-12 min-h-screen">
 	<PageHeader title="Simulador" subtitle="Entorno de pruebas">

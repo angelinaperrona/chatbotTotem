@@ -7,6 +7,7 @@ import { formatPrice } from "$lib/utils/formatters";
 import Input from "$lib/components/ui/input.svelte";
 import Button from "$lib/components/ui/button.svelte";
 import Badge from "$lib/components/ui/badge.svelte";
+import PageTitle from "$lib/components/shared/page-title.svelte";
 
 let dni = $state("");
 let loading = $state(false);
@@ -53,6 +54,8 @@ onMount(async () => {
     await loadHealth();
 });
 </script>
+
+<PageTitle title="Proveedores" />
 
 <div class="p-8 md:p-12 max-w-4xl mx-auto">
 	<div class="mb-12 border-b border-cream-200 pb-6 flex justify-between items-end">

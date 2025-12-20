@@ -6,6 +6,7 @@ import PageHeader from "$lib/components/shared/page-header.svelte";
 import Button from "$lib/components/ui/button.svelte";
 import MetricsGrid from "$lib/components/analytics/metrics-grid.svelte";
 import EventsTable from "$lib/components/analytics/events-table.svelte";
+import PageTitle from "$lib/components/shared/page-title.svelte";
 
 let stats = $state<any>(null);
 let events = $state<any[]>([]);
@@ -37,6 +38,8 @@ onMount(() => {
     loadData();
 });
 </script>
+
+<PageTitle title="Analytics" />
 
 <div class="max-w-7xl mx-auto p-8 md:p-12 min-h-screen">
 	<PageHeader title="Analytics" subtitle="Métricas operativas">

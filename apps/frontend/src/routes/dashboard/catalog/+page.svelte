@@ -9,6 +9,7 @@ import Button from "$lib/components/ui/button.svelte";
 import ProductGrid from "$lib/components/catalog/product-grid.svelte";
 import ProductModal from "$lib/components/catalog/product-modal.svelte";
 import BulkActionsPanel from "$lib/components/catalog/bulk-actions-panel.svelte";
+import PageTitle from "$lib/components/shared/page-title.svelte";
 
 let products = $state<Product[]>([]);
 let selectedProduct = $state<Product | null>(null);
@@ -65,6 +66,8 @@ onMount(() => {
     loadProducts();
 });
 </script>
+
+<PageTitle title="Catálogo" />
 
 <div class="max-w-7xl mx-auto p-8 md:p-12 min-h-screen">
 	<PageHeader title="Catálogo de productos" subtitle="Inventario">

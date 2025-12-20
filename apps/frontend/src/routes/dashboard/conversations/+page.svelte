@@ -7,6 +7,7 @@ import ConversationList from "$lib/components/conversations/conversation-list.sv
 import ConversationHeader from "$lib/components/conversations/conversation-header.svelte";
 import MessageThread from "$lib/components/conversations/message-thread.svelte";
 import MessageInput from "$lib/components/conversations/message-input.svelte";
+import PageTitle from "$lib/components/shared/page-title.svelte";
 
 let conversations = $state<Conversation[]>([]);
 let selectedPhone = $state<string | null>(null);
@@ -71,6 +72,8 @@ onMount(() => {
     };
 });
 </script>
+
+<PageTitle title="Conversaciones" />
 
 <div class="flex h-[calc(100vh-80px)]">
 	<ConversationList

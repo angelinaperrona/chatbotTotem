@@ -6,6 +6,7 @@ import FormField from "$lib/components/ui/form-field.svelte";
 import Input from "$lib/components/ui/input.svelte";
 import Button from "$lib/components/ui/button.svelte";
 import { fetchApi } from "$lib/utils/api";
+import PageTitle from "$lib/components/shared/page-title.svelte";
 
 let username = $state("");
 let password = $state("");
@@ -44,6 +45,8 @@ onMount(async () => {
     }
 });
 </script>
+
+<PageTitle title="Iniciar sesión" />
 
 <div class="h-screen flex flex-col items-center justify-center bg-cream-100 p-8">
 	<div class="w-full max-w-md bg-cream-50 p-12 border border-cream-200 shadow-xl">
