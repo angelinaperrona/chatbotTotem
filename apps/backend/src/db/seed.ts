@@ -205,3 +205,18 @@ export function seedDatabase(db: Database) {
         console.log(`Seeded ${sampleProducts.length} sample products`);
     }
 }
+
+// Main execution
+if (import.meta.main) {
+    const { db } = await import("./connection.ts");
+    const { initializeDatabase } = await import("./init.ts");
+    
+    console.log("Initializing database schema...");
+    initializeDatabase(db);
+    
+    console.log("Seeding database...");
+    seedDatabase(db);
+    
+    console.log("Database setup complete!");
+    process.exit(0);
+}

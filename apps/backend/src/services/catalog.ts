@@ -80,7 +80,7 @@ export const CatalogService = {
             ([, v]) => v as string | number | StockStatus | null,
         );
         db.prepare(
-            `UPDATE catalog_products SET ${fields}, updated_at = datetime('now') WHERE id = ?`,
+            `UPDATE catalog_products SET ${fields}, updated_at = unixepoch('now', 'subsec') * 1000 WHERE id = ?`,
         ).run(...values, id);
         return db
             .prepare("SELECT * FROM catalog_products WHERE id = ?")
@@ -99,7 +99,7 @@ export const CatalogService = {
         const placeholders = ids.map(() => "?").join(",");
 
         const stmt = db.prepare(
-            `UPDATE catalog_products SET ${fields}, updated_at = datetime('now') WHERE id IN (${placeholders})`,
+            `UPDATE catalog_products SET ${fields}, updated_at = unixepoch('now', 'subsec') * 1000 WHERE id IN (${placeholders})`,
         );
         const result = stmt.run(...values, ...ids);
         return result.changes;
@@ -108,15 +108,15 @@ export const CatalogService = {
     updateImages: (id: string, mainPath?: string, specsPath?: string) => {
         if (mainPath && specsPath) {
             db.prepare(
-                `UPDATE catalog_products SET image_main_path = ?, image_specs_path = ?, updated_at = datetime('now') WHERE id = ?`,
+                `UPDATE catalog_products SET image_main_path = ?, image_specs_path = ?, updated_at = unixepoch('now', 'subsec') * 1000 WHERE id = ?`,
             ).run(mainPath, specsPath, id);
         } else if (mainPath) {
             db.prepare(
-                `UPDATE catalog_products SET image_main_path = ?, updated_at = datetime('now') WHERE id = ?`,
+                `UPDATE catalog_products SET image_main_path = ?, updated_at = unixepoch('now', 'subsec') * 1000 WHERE id = ?`,
             ).run(mainPath, id);
         } else if (specsPath) {
             db.prepare(
-                `UPDATE catalog_products SET image_specs_path = ?, updated_at = datetime('now') WHERE id = ?`,
+                `UPDATE catalog_products SET image_specs_path = ?, updated_at = unixepoch('now', 'subsec') * 1000 WHERE id = ?`,
             ).run(specsPath, id);
         }
         return db
