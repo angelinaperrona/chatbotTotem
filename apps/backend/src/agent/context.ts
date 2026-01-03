@@ -52,11 +52,14 @@ export function updateConversationState(
 
   // Map context fields to DB columns
   if (updatedContext.dni) updates.dni = updatedContext.dni;
-  if (updatedContext.clientName) updates.client_name = updatedContext.clientName;
+  if (updatedContext.clientName)
+    updates.client_name = updatedContext.clientName;
   if (updatedContext.segment) updates.segment = updatedContext.segment;
-  if (updatedContext.creditLine !== undefined) updates.credit_line = updatedContext.creditLine;
+  if (updatedContext.creditLine !== undefined)
+    updates.credit_line = updatedContext.creditLine;
   if (updatedContext.nse !== undefined) updates.nse = updatedContext.nse;
-  if (updatedContext.isCaliddaClient !== undefined) updates.is_calidda_client = updatedContext.isCaliddaClient ? 1 : 0;
+  if (updatedContext.isCaliddaClient !== undefined)
+    updates.is_calidda_client = updatedContext.isCaliddaClient ? 1 : 0;
 
   const fields = Object.keys(updates)
     .map((k) => `${k} = ?`)
@@ -83,7 +86,8 @@ export function escalateConversation(
 export function checkSessionTimeout(conv: Conversation): boolean {
   const lastActivity = new Date(conv.last_activity_at);
   const now = new Date();
-  const hoursSince = (now.getTime() - lastActivity.getTime()) / (1000 * 60 * 60);
+  const hoursSince =
+    (now.getTime() - lastActivity.getTime()) / (1000 * 60 * 60);
   return hoursSince >= 3;
 }
 

@@ -136,7 +136,8 @@ async function getFNBSession(): Promise<FNBSession> {
       "content-type": "application/json",
       origin: "https://appweb.calidda.com.pe",
       referer: "https://appweb.calidda.com.pe/WebFNB/login",
-      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+      "user-agent":
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
     },
     body: JSON.stringify({
       usuario: process.env.CALIDDA_USERNAME,
@@ -216,7 +217,7 @@ export const FNBProvider = {
         headers: {
           Authorization: `Bearer ${session.token}`,
           "Content-Type": "application/json",
-          "referer": "https://appweb.calidda.com.pe/WebFNB/consulta-credito",
+          referer: "https://appweb.calidda.com.pe/WebFNB/consulta-credito",
         },
       });
 

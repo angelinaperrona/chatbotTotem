@@ -11,7 +11,8 @@ const conversations = new Hono();
 // List all conversations
 conversations.get("/", (c) => {
   const status = c.req.query("status");
-  let query = "SELECT * FROM conversations WHERE is_simulation = 0 ORDER BY last_activity_at DESC LIMIT 100";
+  let query =
+    "SELECT * FROM conversations WHERE is_simulation = 0 ORDER BY last_activity_at DESC LIMIT 100";
   let params: any[] = [];
 
   if (status) {
