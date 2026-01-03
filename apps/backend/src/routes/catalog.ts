@@ -49,7 +49,14 @@ catalog.post("/", async (c) => {
 
   // Save main image
   const fileName = `${Date.now()}_${file.name.replace(/\.[^.]+$/, "")}.jpg`;
-  const dir = path.join(process.cwd(), "data", "uploads", "catalog", segment, category);
+  const dir = path.join(
+    process.cwd(),
+    "data",
+    "uploads",
+    "catalog",
+    segment,
+    category,
+  );
   fs.mkdirSync(dir, { recursive: true });
   await Bun.write(path.join(dir, fileName), optimized);
 
@@ -62,7 +69,7 @@ catalog.post("/", async (c) => {
       .resize(1024, 1024, { fit: "inside" })
       .jpeg({ quality: 85 })
       .toBuffer();
-    
+
     const specsFileName = `${Date.now()}_specs_${specsFile.name.replace(/\.[^.]+$/, "")}.jpg`;
     await Bun.write(path.join(dir, specsFileName), specsOptimized);
     specsPath = `catalog/${segment}/${category}/${specsFileName}`;
@@ -82,7 +89,11 @@ catalog.post("/", async (c) => {
     created_by: user.id,
   });
 
-  logAction(user.id, "create_product", "product", id, { name, segment, category });
+  logAction(user.id, "create_product", "product", id, {
+    name,
+    segment,
+    category,
+  });
 
   return c.json(product);
 });
@@ -106,7 +117,10 @@ catalog.patch("/:id", async (c) => {
   if (updates.category !== undefined && updates.category.trim().length === 0) {
     return c.json({ error: "Category cannot be empty" }, 400);
   }
-  if (updates.price !== undefined && (typeof updates.price !== "number" || updates.price <= 0)) {
+  if (
+    updates.price !== undefined &&
+    (typeof updates.price !== "number" || updates.price <= 0)
+  ) {
     return c.json({ error: "Price must be a positive number" }, 400);
   }
   if (updates.installments !== undefined && updates.installments !== null) {
@@ -115,7 +129,9 @@ catalog.patch("/:id", async (c) => {
     }
   }
   if (updates.stock_status !== undefined) {
-    if (!['in_stock', 'low_stock', 'out_of_stock'].includes(updates.stock_status)) {
+    if (
+      !["in_stock", "low_stock", "out_of_stock"].includes(updates.stock_status)
+    ) {
       return c.json({ error: "Invalid stock status" }, 400);
     }
   }
@@ -223,7 +239,9 @@ catalog.post("/bulk-update", async (c) => {
   }
 
   if (updates.stock_status !== undefined) {
-    if (!['in_stock', 'low_stock', 'out_of_stock'].includes(updates.stock_status)) {
+    if (
+      !["in_stock", "low_stock", "out_of_stock"].includes(updates.stock_status)
+    ) {
       return c.json({ error: "Invalid stock status" }, 400);
     }
   }

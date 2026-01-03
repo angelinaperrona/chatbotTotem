@@ -2,18 +2,18 @@ import OpenAI from "openai";
 import process from "node:process";
 
 const client = new OpenAI({
-    apiKey: process.env.GEMINI_API_KEY,
-    baseURL: "https://generativelanguage.googleapis.com/v1beta/openai/",
+  apiKey: process.env.GEMINI_API_KEY,
+  baseURL: "https://generativelanguage.googleapis.com/v1beta/openai/",
 });
 
 const MODEL = "gemini-2.5-flash-lite";
 
 export type ExtractedProductData = {
-    name: string | null;
-    price: number | null;
-    installments: number | null;
-    category: string | null;
-    description: string | null;
+  name: string | null;
+  price: number | null;
+  installments: number | null;
+  category: string | null;
+  description: string | null;
 };
 
 /**
@@ -21,18 +21,18 @@ export type ExtractedProductData = {
  * Focuses on: name, price, installments, category
  */
 async function extractFromMainFlyer(
-    imageBuffer: Buffer,
+  imageBuffer: Buffer,
 ): Promise<Partial<ExtractedProductData>> {
-    try {
-        const base64Image = imageBuffer.toString("base64");
-        const mimeType = "image/jpeg";
+  try {
+    const base64Image = imageBuffer.toString("base64");
+    const mimeType = "image/jpeg";
 
-        const completion = await client.chat.completions.create({
-            model: MODEL,
-            messages: [
-                {
-                    role: "system",
-                    content: `Eres un asistente que extrae datos de productos desde flyers promocionales.
+    const completion = await client.chat.completions.create({
+      model: MODEL,
+      messages: [
+        {
+          role: "system",
+          content: `Eres un asistente que extrae datos de productos desde flyers promocionales.
 
 IMPORTANTE: Si hay MÚLTIPLES productos en la imagen, enfócate SOLO en el producto PRINCIPAL o MÁS PROMINENTE (generalmente el más grande o más destacado visualmente).
 
@@ -52,64 +52,66 @@ Ejemplo de respuesta correcta:
   "installments": 12,
   "category": "Smartphones"
 }`,
-                },
-                {
-                    role: "user",
-                    content: [
-                        {
-                            type: "image_url",
-                            image_url: {
-                                url: `data:${mimeType};base64,${base64Image}`,
-                            },
-                        },
-                        {
-                            type: "text",
-                            text: "Extrae los datos del producto principal de este flyer.",
-                        },
-                    ],
-                },
-            ],
-            response_format: { type: "json_object" },
-            temperature: 0.1,
-        });
+        },
+        {
+          role: "user",
+          content: [
+            {
+              type: "image_url",
+              image_url: {
+                url: `data:${mimeType};base64,${base64Image}`,
+              },
+            },
+            {
+              type: "text",
+              text: "Extrae los datos del producto principal de este flyer.",
+            },
+          ],
+        },
+      ],
+      response_format: { type: "json_object" },
+      temperature: 0.1,
+    });
 
-        const content = completion.choices[0]?.message?.content;
-        if (!content) return {};
+    const content = completion.choices[0]?.message?.content;
+    if (!content) return {};
 
-        const parsed = JSON.parse(content);
+    const parsed = JSON.parse(content);
 
-        // Clean and validate extracted data
-        return {
-            name: parsed.name || null,
-            price: parsed.price
-                ? parseFloat(String(parsed.price).replace(/[,\s]/g, ""))
-                : null,
-            installments: parsed.installments
-                ? parseInt(String(parsed.installments), 10)
-                : null,
-            category: parsed.category || null,
-        };
-    } catch (error) {
-        console.error("Main flyer extraction error:", error);
-        return {};
-    }
+    // Clean and validate extracted data
+    return {
+      name: parsed.name || null,
+      price: parsed.price
+        ? parseFloat(String(parsed.price).replace(/[,\s]/g, ""))
+        : null,
+      installments: parsed.installments
+        ? parseInt(String(parsed.installments), 10)
+        : null,
+      category: parsed.category || null,
+    };
+  } catch (error) {
+    console.error("Main flyer extraction error:", error);
+    return {};
+  }
 }
 
 /**
  * Extract technical specifications from specs flyer
  * Focuses on: description (technical details)
  */
-async function extractFromSpecsFlyer(imageBuffer: Buffer): Promise<Partial<ExtractedProductData>> {
-    try {
-        const base64Image = imageBuffer.toString("base64");
-        const mimeType = "image/jpeg";
+async function extractFromSpecsFlyer(
+  imageBuffer: Buffer,
+): Promise<Partial<ExtractedProductData>> {
+  try {
+    const base64Image = imageBuffer.toString("base64");
+    const mimeType = "image/jpeg";
 
-        const completion = await client.chat.completions.create({
-            model: MODEL,
-            messages: [
-                {
-                    role: "system",
-                    content: `Eres un asistente que extrae especificaciones técnicas desde flyers de productos.
+    const completion = await client.chat.completions.create({
+      model: MODEL,
+      messages: [
+        {
+          role: "system",
+          content: `Eres un asistente que extrae especificaciones técnicas desde flyers de productos.
 
 Lee TODAS las especificaciones técnicas visibles en el flyer y organízalas en un texto descriptivo fluido.
 
@@ -129,39 +131,39 @@ Ejemplo de respuesta correcta:
 {
   "description": "Televisor LED de 43 pulgadas con resolución Full HD 1920x1080. Cuenta con sistema operativo Android TV y procesador Quad Core. Incluye WiFi, Bluetooth y 3 puertos HDMI. Dimensiones: 97x56x8cm. Garantía de 1 año."
 }`,
-                },
-                {
-                    role: "user",
-                    content: [
-                        {
-                            type: "image_url",
-                            image_url: {
-                                url: `data:${mimeType};base64,${base64Image}`,
-                            },
-                        },
-                        {
-                            type: "text",
-                            text: "Extrae todas las especificaciones técnicas visibles y organízalas en la descripción.",
-                        },
-                    ],
-                },
-            ],
-            response_format: { type: "json_object" },
-            temperature: 0.1,
-        });
+        },
+        {
+          role: "user",
+          content: [
+            {
+              type: "image_url",
+              image_url: {
+                url: `data:${mimeType};base64,${base64Image}`,
+              },
+            },
+            {
+              type: "text",
+              text: "Extrae todas las especificaciones técnicas visibles y organízalas en la descripción.",
+            },
+          ],
+        },
+      ],
+      response_format: { type: "json_object" },
+      temperature: 0.1,
+    });
 
-        const content = completion.choices[0]?.message?.content;
-        if (!content) return {};
+    const content = completion.choices[0]?.message?.content;
+    if (!content) return {};
 
-        const parsed = JSON.parse(content);
+    const parsed = JSON.parse(content);
 
-        return {
-            description: parsed.description || parsed.specifications || null,
-        };
-    } catch (error) {
-        console.error("Specs flyer extraction error:", error);
-        return {};
-    }
+    return {
+      description: parsed.description || parsed.specifications || null,
+    };
+  } catch (error) {
+    console.error("Specs flyer extraction error:", error);
+    return {};
+  }
 }
 
 /**
@@ -169,29 +171,29 @@ Ejemplo de respuesta correcta:
  * Processes main flyer (required) and specs flyer (optional)
  */
 export async function extractProductData(
-    mainImageBuffer: Buffer,
-    specsImageBuffer?: Buffer,
+  mainImageBuffer: Buffer,
+  specsImageBuffer?: Buffer,
 ): Promise<ExtractedProductData> {
-    // Extract from main flyer
-    const mainData = await extractFromMainFlyer(mainImageBuffer);
+  // Extract from main flyer
+  const mainData = await extractFromMainFlyer(mainImageBuffer);
 
-    // Wait a bit to avoid rate limits (sequential processing)
-    if (specsImageBuffer) {
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-    }
+  // Wait a bit to avoid rate limits (sequential processing)
+  if (specsImageBuffer) {
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+  }
 
-    // Extract from specs flyer if provided
-    let specsData = {};
-    if (specsImageBuffer) {
-        specsData = await extractFromSpecsFlyer(specsImageBuffer);
-    }
+  // Extract from specs flyer if provided
+  let specsData = {};
+  if (specsImageBuffer) {
+    specsData = await extractFromSpecsFlyer(specsImageBuffer);
+  }
 
-    // Merge results
-    return {
-        name: mainData.name || null,
-        price: mainData.price || null,
-        installments: mainData.installments || null,
-        category: mainData.category || null,
-        description: (specsData as any).description || null,
-    };
+  // Merge results
+  return {
+    name: mainData.name || null,
+    price: mainData.price || null,
+    installments: mainData.installments || null,
+    category: mainData.category || null,
+    description: (specsData as any).description || null,
+  };
 }

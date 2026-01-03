@@ -10,7 +10,9 @@ const admin = new Hono();
 // List all users
 admin.get("/users", (c) => {
   const users = db
-    .prepare("SELECT id, username, role, name, is_active, created_at FROM users")
+    .prepare(
+      "SELECT id, username, role, name, is_active, created_at FROM users",
+    )
     .all() as Omit<User, "password_hash">[];
 
   return c.json({ users });
@@ -42,7 +44,7 @@ admin.post("/users", async (c) => {
 
   db.prepare(
     `INSERT INTO users (id, username, password_hash, role, name, created_by) 
-     VALUES (?, ?, ?, ?, ?, ?)`
+     VALUES (?, ?, ?, ?, ?, ?)`,
   ).run(id, username, hash, role, name, creator.id);
 
   logAction(creator.id, "create_user", "user", id, {
@@ -76,7 +78,7 @@ admin.patch("/users/:id/status", (c) => {
 
   db.prepare("UPDATE users SET is_active = ? WHERE id = ?").run(
     newStatus,
-    userId
+    userId,
   );
 
   // Invalidate all sessions if deactivating
@@ -105,7 +107,7 @@ admin.post("/users/:id/password", async (c) => {
 
   db.prepare("UPDATE users SET password_hash = ? WHERE id = ?").run(
     hash,
-    userId
+    userId,
   );
 
   // Invalidate all sessions
