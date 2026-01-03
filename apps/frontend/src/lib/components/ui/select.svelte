@@ -31,7 +31,8 @@ let open = $state(false);
 let triggerRef: HTMLButtonElement | undefined = $state();
 let selectedIndex = $state(-1);
 
-const baseStyles = "block w-full bg-transparent border-b px-0 py-2 min-h-[44px] text-ink-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink-900 focus-visible:ring-offset-1 transition-colors duration-200 text-[16px] md:text-lg font-serif touch-action-manipulation";
+const baseStyles =
+  "block w-full bg-transparent border-b px-0 py-2 min-h-[44px] text-ink-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink-900 focus-visible:ring-offset-1 transition-colors duration-200 text-[16px] md:text-lg font-serif touch-action-manipulation";
 const normalBorder = "border-ink-900/30 data-[open]:border-ink-900";
 const errorBorder = "border-red-600 data-[open]:border-red-600";
 

@@ -15,7 +15,8 @@ type Props = {
   onUpdate: (newStatus: StockStatus) => void;
 };
 
-let { productId, productName, stockStatus, canEdit, onUpdate }: Props = $props();
+let { productId, productName, stockStatus, canEdit, onUpdate }: Props =
+  $props();
 
 let open = $state(false);
 let isUpdating = $state(false);

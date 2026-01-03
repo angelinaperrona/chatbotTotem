@@ -15,7 +15,8 @@ let {
   onchange,
 }: Props = $props();
 
-const baseStyles = "w-5 h-5 min-w-[20px] min-h-[20px] border-2 border-ink-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink-900 focus-visible:ring-offset-2 rounded-none transition-colors flex items-center justify-center cursor-pointer appearance-none touch-action-manipulation disabled:opacity-50 disabled:cursor-not-allowed";
+const baseStyles =
+  "w-5 h-5 min-w-[20px] min-h-[20px] border-2 border-ink-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink-900 focus-visible:ring-offset-2 rounded-none transition-colors flex items-center justify-center cursor-pointer appearance-none touch-action-manipulation disabled:opacity-50 disabled:cursor-not-allowed";
 
 function handleChange(e: Event & { currentTarget: HTMLInputElement }) {
   checked = e.currentTarget.checked;

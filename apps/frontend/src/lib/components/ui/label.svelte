@@ -9,7 +9,8 @@ type Props = {
 
 let { for: htmlFor, class: className = "", children }: Props = $props();
 
-const baseStyles = "block text-xs uppercase tracking-widest text-ink-400 mb-2 font-bold";
+const baseStyles =
+  "block text-xs uppercase tracking-widest text-ink-400 mb-2 font-bold";
 </script>
 
 <label for={htmlFor} class="{baseStyles} {className}">
