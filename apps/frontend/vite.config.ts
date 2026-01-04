@@ -11,5 +11,6 @@ export default defineConfig({
       "/api": "http://localhost:3000",
       "/static": "http://localhost:3000",
     },
+    allowedHosts: [".trycloudflare.com"],
   },
 });
