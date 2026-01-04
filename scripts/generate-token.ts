@@ -59,11 +59,8 @@ function main() {
 
   const token = generateToken(length);
 
-  console.log(`\n${label}:\n`);
-  console.log(`  ${token}`);
-  console.log(`\nAdd to your .env file:`);
-  console.log(`  WHATSAPP_WEBHOOK_VERIFY_TOKEN="${token}"`);
-  console.log(`\nKeep this secret! Don't commit to git.\n`);
+  console.log(`Add to your .env file:`);
+  console.log(`WHATSAPP_WEBHOOK_VERIFY_TOKEN="${token}"`);
 }
 
 main();
