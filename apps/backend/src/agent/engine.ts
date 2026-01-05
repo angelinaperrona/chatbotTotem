@@ -26,6 +26,14 @@ export async function processMessage(
 ): Promise<void> {
   const conv = getOrCreateConversation(phoneNumber);
 
+  // Reset terminal states immediately on new user message
+  if (conv.current_state === "CLOSING" || conv.current_state === "ESCALATED") {
+    resetSession(phoneNumber);
+    const resetConv = getOrCreateConversation(phoneNumber);
+    await executeTransition(resetConv, message);
+    return;
+  }
+
   // Check for session timeout (3 hours)
   if (checkSessionTimeout(conv) && conv.current_state !== "INIT") {
     resetSession(phoneNumber);

@@ -66,7 +66,7 @@ export async function initializeWhatsAppClient() {
   client.on("message", async (msg) => {
     // Forward messages to backend in dev mode (exclude groups and commands)
     const isGroupMessage = msg.from.endsWith("@g.us");
-    const isCommand = msg.body.startsWith("@");
+    const isCommand = msg.body?.startsWith("@") || false;
     
     // Only forward actual incoming messages (not status updates, acks, etc.)
     if (IS_DEV && !isGroupMessage && !isCommand && msg.fromMe === false) {
