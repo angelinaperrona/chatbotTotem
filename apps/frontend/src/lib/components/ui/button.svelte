@@ -22,7 +22,7 @@ let {
 }: Props = $props();
 
 const baseStyles =
-  "px-6 py-3 min-h-[40px] rounded-full transition-all duration-200 font-medium text-xs tracking-widest uppercase disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink-900 focus-visible:ring-offset-2 touch-action-manipulation inline-flex items-center justify-center text-center";
+  "px-6 py-3 min-h-10 rounded-full transition-all duration-200 font-medium text-xs tracking-widest uppercase disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink-900 focus-visible:ring-offset-2 touch-action-manipulation inline-flex items-center justify-center text-center";
 
 const variants = {
   primary: "bg-ink-900 text-cream-50 hover:bg-ink-600 focus-visible:bg-ink-600",

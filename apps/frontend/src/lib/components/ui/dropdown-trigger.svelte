@@ -24,7 +24,7 @@ let {
 	{onclick}
 	aria-haspopup="true"
 	aria-expanded={open}
-	class="{className} min-h-[40px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink-900 focus-visible:ring-offset-2 touch-action-manipulation disabled:opacity-50 disabled:cursor-not-allowed"
+	class="{className} min-h-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink-900 focus-visible:ring-offset-2 touch-action-manipulation disabled:opacity-50 disabled:cursor-not-allowed"
 >
 	{@render children()}
 </button>

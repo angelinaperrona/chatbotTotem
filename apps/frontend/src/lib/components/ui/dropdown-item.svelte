@@ -21,7 +21,7 @@ let {
 	data-dropdown-item
 	{disabled}
 	{onclick}
-	class="{className} min-h-[40px] w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink-900 focus-visible:ring-offset-1 touch-action-manipulation disabled:opacity-50 disabled:cursor-not-allowed"
+	class="{className} min-h-10 w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink-900 focus-visible:ring-offset-1 touch-action-manipulation disabled:opacity-50 disabled:cursor-not-allowed"
 	role="menuitem"
 	tabindex={disabled ? -1 : 0}
 >
