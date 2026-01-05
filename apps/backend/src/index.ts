@@ -12,7 +12,6 @@ import bcrypt from "bcryptjs";
 import {
   generateSessionToken,
   createSession,
-  validateSessionToken,
   invalidateSession,
   setSessionTokenCookie,
   deleteSessionTokenCookie,
