@@ -40,7 +40,7 @@ async function updateStatus(
   noteType?: "supervisor" | "calidda",
 ) {
   if (!data.order) return;
-  
+
   // Require notes for rejection
   if (newStatus.includes("rejected") && !approvalNotes.trim()) {
     toast.error("Debe ingresar una razón para el rechazo");
@@ -58,7 +58,7 @@ async function updateStatus(
         noteType,
       }),
     });
-    
+
     toast.success("Estado actualizado correctamente");
     approvalNotes = "";
     await invalidateAll();
