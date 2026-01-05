@@ -59,6 +59,40 @@ function clearFilters() {
 <div class="max-w-7xl mx-auto p-8 md:p-12 min-h-screen">
   <PageHeader title="Órdenes" subtitle="Gestión de pedidos y entregas" />
 
+  <!-- Metrics Summary -->
+  {#if data.metrics}
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+      <div class="bg-white border border-cream-200 p-6">
+        <p class="text-xs font-bold uppercase tracking-widest text-ink-400 mb-2">
+          Pendientes
+        </p>
+        <p class="text-3xl font-bold font-mono text-yellow-700">{data.metrics.pendingCount}</p>
+        <p class="text-xs text-ink-400 mt-1">Requieren aprobación</p>
+      </div>
+      <div class="bg-white border border-cream-200 p-6">
+        <p class="text-xs font-bold uppercase tracking-widest text-ink-400 mb-2">
+          Entregados
+        </p>
+        <p class="text-3xl font-bold font-mono text-green-700">{data.metrics.deliveredCount}</p>
+        <p class="text-xs text-ink-400 mt-1">{data.metrics.approvalRate.toFixed(1)}% tasa de aprobación</p>
+      </div>
+      <div class="bg-white border border-cream-200 p-6">
+        <p class="text-xs font-bold uppercase tracking-widest text-ink-400 mb-2">
+          Ingresos totales
+        </p>
+        <p class="text-2xl font-bold font-mono text-ink-900">S/ {formatPrice(data.metrics.totalRevenue)}</p>
+        <p class="text-xs text-ink-400 mt-1">Ticket prom: S/ {formatPrice(data.metrics.avgOrderValue)}</p>
+      </div>
+      <div class="bg-white border border-cream-200 p-6">
+        <p class="text-xs font-bold uppercase tracking-widest text-ink-400 mb-2">
+          Este mes
+        </p>
+        <p class="text-2xl font-bold font-mono text-blue-700">S/ {formatPrice(data.metrics.revenueThisMonth)}</p>
+        <p class="text-xs text-ink-400 mt-1">{data.metrics.rejectionRate.toFixed(1)}% rechazados</p>
+      </div>
+    </div>
+  {/if}
+
   <!-- Filters -->
   <div class="bg-white border border-cream-200 p-6 mb-6">
     <h3 class="text-xs font-bold uppercase tracking-widest text-ink-400 mb-4">

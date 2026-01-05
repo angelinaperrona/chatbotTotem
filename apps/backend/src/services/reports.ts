@@ -8,6 +8,13 @@ type ActivityReportParams = {
   saleStatuses: string[];
 };
 
+type OrderReportParams = {
+  startDate?: Date;
+  endDate?: Date;
+  status?: string;
+  assignedAgent?: string;
+};
+
 export const ReportService = {
   generateDailyReport: (date: Date = new Date()) => {
     const start = new Date(date);
@@ -194,5 +201,126 @@ export const ReportService = {
       .get(startTimestamp) as { count: number };
 
     return result?.count ?? 0;
+  },
+
+  generateOrderReport: (params: OrderReportParams = {}) => {
+    const { startDate, endDate, status, assignedAgent } = params;
+
+    const conditions: string[] = [];
+    const values: any[] = [];
+
+    if (startDate) {
+      conditions.push("created_at >= ?");
+      values.push(startDate.getTime());
+    }
+
+    if (endDate) {
+      const endOfDay = new Date(endDate);
+      endOfDay.setHours(23, 59, 59, 999);
+      conditions.push("created_at <= ?");
+      values.push(endOfDay.getTime());
+    }
+
+    if (status) {
+      conditions.push("status = ?");
+      values.push(status);
+    }
+
+    if (assignedAgent) {
+      conditions.push("assigned_agent = ?");
+      values.push(assignedAgent);
+    }
+
+    const whereClause =
+      conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+
+    const rows = db
+      .prepare(
+        `
+        SELECT 
+          order_number as "Número de Orden",
+          client_name as "Cliente",
+          client_dni as "DNI",
+          conversation_phone as "Teléfono",
+          total_amount as "Monto Total",
+          delivery_address as "Dirección",
+          delivery_reference as "Referencia",
+          status as "Estado",
+          assigned_agent as "Agente",
+          supervisor_notes as "Notas Supervisor",
+          calidda_notes as "Notas Calidda",
+          created_at as "Fecha Creación",
+          updated_at as "Última Actualización"
+        FROM orders 
+        ${whereClause}
+        ORDER BY created_at DESC
+      `,
+      )
+      .all(...values) as any[];
+
+    const statusMap: Record<string, string> = {
+      pending: "Pendiente",
+      supervisor_approved: "Aprobado Supervisor",
+      supervisor_rejected: "Rechazado Supervisor",
+      calidda_approved: "Aprobado Calidda",
+      calidda_rejected: "Rechazado Calidda",
+      delivered: "Entregado",
+    };
+
+    const transformedRows = rows.map((row, index) => {
+      const formatTimestamp = (ts: any) => {
+        const timestamp = Number(ts);
+        if (!isNaN(timestamp)) {
+          return new Date(timestamp).toLocaleString("es-PE", {
+            timeZone: "America/Lima",
+          });
+        }
+        return "";
+      };
+
+      return {
+        "#": index + 1,
+        "Número de Orden": row["Número de Orden"],
+        Cliente: row["Cliente"],
+        DNI: row["DNI"],
+        Teléfono: row["Teléfono"],
+        "Monto Total": `S/ ${Number(row["Monto Total"]).toFixed(2)}`,
+        Dirección: row["Dirección"] || "",
+        Referencia: row["Referencia"] || "",
+        Estado: statusMap[row["Estado"]] || row["Estado"],
+        Agente: row["Agente"] || "",
+        "Notas Supervisor": row["Notas Supervisor"] || "",
+        "Notas Calidda": row["Notas Calidda"] || "",
+        "Fecha Creación": formatTimestamp(row["Fecha Creación"]),
+        "Última Actualización": formatTimestamp(row["Última Actualización"]),
+      };
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(transformedRows);
+
+    worksheet["!cols"] = [
+      { wch: 5 }, // #
+      { wch: 18 }, // Número de Orden
+      { wch: 25 }, // Cliente
+      { wch: 12 }, // DNI
+      { wch: 15 }, // Teléfono
+      { wch: 12 }, // Monto Total
+      { wch: 35 }, // Dirección
+      { wch: 25 }, // Referencia
+      { wch: 18 }, // Estado
+      { wch: 20 }, // Agente
+      { wch: 30 }, // Notas Supervisor
+      { wch: 30 }, // Notas Calidda
+      { wch: 20 }, // Fecha Creación
+      { wch: 20 }, // Última Actualización
+    ];
+
+    const workbook = XLSX.utils.book_new();
+    const sheetName = startDate
+      ? startDate.toISOString().split("T")[0]
+      : "Ordenes";
+    XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
+
+    return XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
   },
 };

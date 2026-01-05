@@ -18,6 +18,12 @@ let saleStatusPending = $state(false);
 let saleStatusRejected = $state(false);
 let generating = $state(false);
 
+// Order report state
+let orderStartDate = $state("");
+let orderEndDate = $state("");
+let orderStatus = $state("");
+let generatingOrders = $state(false);
+
 function setQuickDate(days: number) {
   const end = new Date();
   const start = new Date();
@@ -90,6 +96,35 @@ function handleSaleStatusChange(status: string) {
     saleStatusRejected = false;
   } else {
     saleStatusAll = false;
+  }
+}
+
+async function generateOrderReport() {
+  generatingOrders = true;
+
+  const params = new URLSearchParams();
+  if (orderStartDate) params.append("startDate", orderStartDate);
+  if (orderEndDate) params.append("endDate", orderEndDate);
+  if (orderStatus) params.append("status", orderStatus);
+
+  try {
+    const res = await fetch(`/api/reports/orders?${params}`);
+    if (!res.ok) throw new Error("Failed to generate order report");
+
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    const dateRange = orderStartDate
+      ? `${orderStartDate}-a-${orderEndDate || "hoy"}`
+      : "todas";
+    a.download = `reporte-ordenes-${dateRange}.xlsx`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error("Failed to generate order report:", error);
+  } finally {
+    generatingOrders = false;
   }
 }
 </script>
@@ -252,6 +287,72 @@ function handleSaleStatusChange(status: string) {
           </p>
           <Button onclick={generateReport} disabled={generating}>
             {generating ? "Generando..." : "Generar Excel"}
+          </Button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Order Report -->
+  <div class="bg-white border border-cream-200 p-8 mt-8">
+    <h2 class="font-serif text-2xl mb-2">Reporte de órdenes</h2>
+    <p class="text-ink-400 text-sm mb-8">
+      Exporta todas las órdenes registradas con detalles de estado, montos y aprobaciones.
+    </p>
+
+    <div class="space-y-6">
+      <!-- Date Range -->
+      <div>
+        <h3 class="text-xs font-bold uppercase tracking-widest text-ink-400 mb-3">
+          Período (opcional)
+        </h3>
+        <div class="flex gap-4 items-center">
+          <div>
+            <label for="order-start-date" class="block text-xs text-ink-400 mb-1">Desde</label>
+            <input
+              id="order-start-date"
+              type="date"
+              bind:value={orderStartDate}
+              class="px-4 py-2 border border-ink-200 font-mono text-sm focus:outline-none focus:border-ink-900"
+            />
+          </div>
+          <span class="text-ink-300 mt-5">—</span>
+          <div>
+            <label for="order-end-date" class="block text-xs text-ink-400 mb-1">Hasta</label>
+            <input
+              id="order-end-date"
+              type="date"
+              bind:value={orderEndDate}
+              class="px-4 py-2 border border-ink-200 font-mono text-sm focus:outline-none focus:border-ink-900"
+            />
+          </div>
+        </div>
+      </div>
+
+      <!-- Status Filter -->
+      <div>
+        <h3 class="text-xs font-bold uppercase tracking-widest text-ink-400 mb-3">
+          Estado (opcional)
+        </h3>
+        <select
+          bind:value={orderStatus}
+          class="px-4 py-2 border border-ink-200 text-sm focus:outline-none focus:border-ink-900 min-w-[200px]"
+        >
+          <option value="">Todos los estados</option>
+          <option value="pending">Pendiente</option>
+          <option value="supervisor_approved">Aprobado supervisor</option>
+          <option value="supervisor_rejected">Rechazado supervisor</option>
+          <option value="calidda_approved">Aprobado Calidda</option>
+          <option value="calidda_rejected">Rechazado Calidda</option>
+          <option value="delivered">Entregado</option>
+        </select>
+      </div>
+
+      <!-- Generate Button -->
+      <div class="pt-4 border-t border-cream-200">
+        <div class="flex items-center justify-end">
+          <Button onclick={generateOrderReport} disabled={generatingOrders}>
+            {generatingOrders ? "Generando..." : "Generar Excel"}
           </Button>
         </div>
       </div>

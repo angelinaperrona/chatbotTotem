@@ -3,6 +3,12 @@ import { ordersService } from "../services/orders";
 
 const orders = new Hono();
 
+// Get order metrics
+orders.get("/metrics", async (c) => {
+  const metrics = ordersService.getOrderMetrics();
+  return c.json(metrics);
+});
+
 // Create order
 orders.post("/", async (c) => {
   const body = await c.req.json();

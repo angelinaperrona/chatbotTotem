@@ -190,6 +190,36 @@ app.get("/api/reports/activity", requireAuth, (c) => {
   return c.body(buffer);
 });
 
+app.get("/api/reports/orders", requireAuth, (c) => {
+  const startDateStr = c.req.query("startDate");
+  const endDateStr = c.req.query("endDate");
+  const status = c.req.query("status") || "";
+  const assignedAgent = c.req.query("assignedAgent") || "";
+
+  const startDate = startDateStr ? new Date(startDateStr) : undefined;
+  const endDate = endDateStr ? new Date(endDateStr) : undefined;
+
+  const buffer = ReportService.generateOrderReport({
+    startDate,
+    endDate,
+    status: status || undefined,
+    assignedAgent: assignedAgent || undefined,
+  });
+
+  const dateRange = startDate
+    ? `${startDate.toISOString().split("T")[0]}-a-${endDate ? endDate.toISOString().split("T")[0] : "hoy"}`
+    : "todas";
+  const filename = `reporte-ordenes-${dateRange}.xlsx`;
+
+  c.header(
+    "Content-Type",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  );
+  c.header("Content-Disposition", `attachment; filename="${filename}"`);
+
+  return c.body(buffer);
+});
+
 // Provider check endpoint
 app.get("/api/providers/:dni", requireAuth, async (c) => {
   const dni = c.req.param("dni");
