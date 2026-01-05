@@ -6,31 +6,31 @@ import PageTitle from "$lib/components/shared/page-title.svelte";
 
 let loading = $state(false);
 let newPersona = $state({
-	id: "",
-	name: "",
-	description: "",
-	segment: "fnb" as "fnb" | "gaso" | "not_eligible",
-	clientName: "",
-	dni: "",
-	creditLine: 0,
-	nse: undefined as number | undefined,
+  id: "",
+  name: "",
+  description: "",
+  segment: "fnb" as "fnb" | "gaso" | "not_eligible",
+  clientName: "",
+  dni: "",
+  creditLine: 0,
+  nse: undefined as number | undefined,
 });
 
 async function createPersona() {
-	loading = true;
-	try {
-		await fetchApi("/api/simulator/personas", {
-			method: "POST",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify(newPersona),
-		});
-		goto("/dashboard/personas");
-	} catch (error) {
-		console.error("Failed to create persona:", error);
-		alert("Error al crear persona");
-	} finally {
-		loading = false;
-	}
+  loading = true;
+  try {
+    await fetchApi("/api/simulator/personas", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(newPersona),
+    });
+    goto("/dashboard/personas");
+  } catch (error) {
+    console.error("Failed to create persona:", error);
+    alert("Error al crear persona");
+  } finally {
+    loading = false;
+  }
 }
 </script>
 

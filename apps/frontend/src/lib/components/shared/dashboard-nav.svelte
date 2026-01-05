@@ -3,35 +3,35 @@ import { page } from "$app/stores";
 import { auth } from "$lib/state/auth.svelte";
 
 const breadcrumbLabels: Record<string, string> = {
-	"/dashboard/conversations": "Conversaciones",
-	"/dashboard/catalog": "Catálogo",
-	"/dashboard/providers": "Proveedores",
-	"/dashboard/simulator": "Simulador",
-	"/dashboard/stats": "Analytics",
-	"/dashboard/reports": "Reportes",
-	"/dashboard/orders": "Órdenes",
-	"/dashboard/admin": "Administración",
-	"/dashboard/personas": "Personas",
-	"/dashboard/personas/create": "Crear",
+  "/dashboard/conversations": "Conversaciones",
+  "/dashboard/catalog": "Catálogo",
+  "/dashboard/providers": "Proveedores",
+  "/dashboard/simulator": "Simulador",
+  "/dashboard/stats": "Analytics",
+  "/dashboard/reports": "Reportes",
+  "/dashboard/orders": "Órdenes",
+  "/dashboard/admin": "Administración",
+  "/dashboard/personas": "Personas",
+  "/dashboard/personas/create": "Crear",
 };
 
 $: crumbs = (() => {
-	const path = $page.url.pathname;
-	const segments = path.split('/').filter(Boolean);
-	let currentPath = '';
-	const trail: { label: string; href: string }[] = [];
+  const path = $page.url.pathname;
+  const segments = path.split("/").filter(Boolean);
+  let currentPath = "";
+  const trail: { label: string; href: string }[] = [];
 
-	for (const segment of segments) {
-		currentPath += `/${segment}`;
-		const label = breadcrumbLabels[currentPath];
-		if (label) {
-			trail.push({
-				label,
-				href: currentPath
-			});
-		}
-	}
-	return trail;
+  for (const segment of segments) {
+    currentPath += `/${segment}`;
+    const label = breadcrumbLabels[currentPath];
+    if (label) {
+      trail.push({
+        label,
+        href: currentPath,
+      });
+    }
+  }
+  return trail;
 })();
 </script>
 

@@ -9,35 +9,35 @@ let personas = $state<TestPersona[]>([]);
 let loading = $state(false);
 
 async function loadPersonas() {
-	loading = true;
-	try {
-		personas = await fetchApi<TestPersona[]>("/api/simulator/personas");
-	} catch (error) {
-		console.error("Failed to load personas:", error);
-	} finally {
-		loading = false;
-	}
+  loading = true;
+  try {
+    personas = await fetchApi<TestPersona[]>("/api/simulator/personas");
+  } catch (error) {
+    console.error("Failed to load personas:", error);
+  } finally {
+    loading = false;
+  }
 }
 
 async function deletePersona(personaId: string) {
-	if (!confirm("¿Eliminar esta persona de prueba?")) return;
+  if (!confirm("¿Eliminar esta persona de prueba?")) return;
 
-	loading = true;
-	try {
-		await fetchApi(`/api/simulator/personas/${personaId}`, {
-			method: "DELETE",
-		});
-		await loadPersonas();
-	} catch (error) {
-		console.error("Failed to delete persona:", error);
-		alert("Error al eliminar persona");
-	} finally {
-		loading = false;
-	}
+  loading = true;
+  try {
+    await fetchApi(`/api/simulator/personas/${personaId}`, {
+      method: "DELETE",
+    });
+    await loadPersonas();
+  } catch (error) {
+    console.error("Failed to delete persona:", error);
+    alert("Error al eliminar persona");
+  } finally {
+    loading = false;
+  }
 }
 
 onMount(() => {
-	loadPersonas();
+  loadPersonas();
 });
 </script>
 
