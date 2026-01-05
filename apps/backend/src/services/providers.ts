@@ -127,8 +127,6 @@ async function getFNBSession(): Promise<FNBSession> {
   if (fnbSession && fnbSession.expiresAt > new Date()) return fnbSession;
 
   const authUrl = `${process.env.CALIDDA_BASE_URL}/FNB_Services/api/Seguridad/autenticar`;
-  console.log(`[Calidda] Attempting auth at: ${authUrl}`);
-  console.log(`[Calidda] Username: ${process.env.CALIDDA_USERNAME}`);
 
   const response = await fetch(authUrl, {
     method: "POST",
