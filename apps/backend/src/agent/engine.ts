@@ -17,11 +17,7 @@ import { notifyTeam } from "../services/notifier.ts";
 import { CatalogService } from "../services/catalog.ts";
 import * as LLM from "../services/llm.ts";
 import * as T from "@totem/core";
-import {
-  selectVariant,
-  selectVariantWithContext,
-  formatFirstName,
-} from "@totem/core";
+import { selectVariant, formatFirstName } from "@totem/core";
 
 export async function processMessage(
   phoneNumber: string,

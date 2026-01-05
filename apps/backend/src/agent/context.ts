@@ -15,21 +15,9 @@ export function getOrCreateConversation(
       "INSERT INTO conversations (phone_number, current_state, status, is_simulation) VALUES (?, ?, ?, ?)",
     ).run(phoneNumber, "INIT", "active", isSimulation ? 1 : 0);
 
-    conv = {
-      phone_number: phoneNumber,
-      client_name: null,
-      dni: null,
-      is_calidda_client: 0,
-      segment: null,
-      credit_line: null,
-      nse: null,
-      current_state: "INIT",
-      status: "active",
-      context_data: "{}",
-      handover_reason: null,
-      is_simulation: isSimulation ? 1 : 0,
-      last_activity_at: new Date().toISOString(),
-    };
+    conv = db
+      .prepare("SELECT * FROM conversations WHERE phone_number = ?")
+      .get(phoneNumber) as Conversation;
   }
 
   return conv;

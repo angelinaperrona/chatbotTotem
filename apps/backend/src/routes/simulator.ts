@@ -147,7 +147,7 @@ simulator.post("/load", async (c) => {
   WhatsAppService.clearMessageHistory(simulatorPhone);
 
   // Create/update simulator conversation with source data
-  const conv = getOrCreateConversation(simulatorPhone, true);
+  getOrCreateConversation(simulatorPhone, true);
 
   // Copy context data and state
   updateConversationState(simulatorPhone, sourceConv.current_state, {

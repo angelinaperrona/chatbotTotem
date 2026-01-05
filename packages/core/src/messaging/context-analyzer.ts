@@ -131,14 +131,12 @@ export function isAcknowledgment(message: string): boolean {
  * Analyze full conversation context to generate signals
  *
  * @param currentMessage - User's current message
- * @param previousState - Current conversation state
  * @param messageCount - Number of times user has messaged in current state
  * @param lastBotMessageTime - Timestamp of last bot message
  * @returns ConversationSignals for intelligent variant selection
  */
 export function analyzeContext(
   currentMessage: string,
-  previousState: string,
   messageCount: number,
   lastBotMessageTime?: Date,
 ): ConversationSignals {
