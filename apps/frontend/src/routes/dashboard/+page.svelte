@@ -9,7 +9,7 @@ let { data }: { data: PageData } = $props();
 
 <PageTitle title="Dashboard" />
 
-<div class="h-screen w-full flex flex-col md:flex-row bg-cream-100 overflow-hidden">
+<div class="min-h-screen w-full flex flex-col md:flex-row bg-cream-100 md:h-screen md:overflow-hidden">
 	<div class="w-full md:w-1/3 lg:w-1/4 bg-cream-50 border-b md:border-b-0 md:border-r border-ink-900/10 p-12 flex flex-col justify-between">
 		<div>
 			<h1 class="text-5xl font-serif mb-6 italic">totem</h1>
@@ -58,7 +58,7 @@ let { data }: { data: PageData } = $props();
 		{/if}
 	</div>
 
-	<div class="flex-1 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 auto-rows-fr">
+	<div class="flex-1 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 auto-rows-fr md:overflow-hidden">
 		<DashboardGridItem
 			href="/dashboard/conversations"
 			number="01"
