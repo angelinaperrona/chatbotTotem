@@ -14,7 +14,7 @@ export const BASE_PRODUCTS = [
     name: "Cocina Mabe 4Q",
     category: "cocinas",
     brand: "Mabe",
-    model: "TX511OP2",
+    model: "TX5110P2",
     specs: {
       encendido: "manual",
       horno: "gas natural",
@@ -160,6 +160,14 @@ export const BASE_PRODUCTS = [
     brand: "Hisense",
     model: null,
     specs: { size: '55"', control: "remoto" },
+  },
+  {
+    id: "tcl_tv_55",
+    name: 'Smart TV TCL 55"',
+    category: "tv",
+    brand: "TCL",
+    model: null,
+    specs: { size: '55"' },
   },
   {
     id: "samsung_tv_65",
