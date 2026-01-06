@@ -1,312 +1,347 @@
 import { Hono } from "hono";
-import { CatalogService } from "../services/catalog.ts";
+import {
+  ProductService,
+  BundleService,
+  FnbOfferingService,
+} from "../services/catalog/index.ts";
 import { PeriodService } from "../services/periods.ts";
-import { BulkImportService } from "../services/bulk-import.ts";
-import { extractProductData } from "../services/vision-extractor.ts";
 import { imageStorage } from "../services/image-storage.ts";
 import { logAction } from "../services/audit.ts";
 import { requireRole } from "../middleware/auth.ts";
 
 const catalog = new Hono();
 
-// Middleware: write operations require admin, developer, or supervisor
 const requireCatalogWrite = requireRole("admin", "developer", "supervisor");
 
-// List products - optionally filter by period or segment
-catalog.get("/", (c) => {
-  const periodId = c.req.query("period_id");
-  const segment = c.req.query("segment");
+// ============ PRODUCTS (base templates) ============
 
-  // If period specified, get products for that period
-  if (periodId) {
-    return c.json(CatalogService.getByPeriod(periodId));
-  }
-
-  // If segment specified without period, get active period products
-  if (segment && (segment === "fnb" || segment === "gaso")) {
-    return c.json(CatalogService.getActiveBySegment(segment));
-  }
-
-  // Default: all products
-  return c.json(CatalogService.getAll());
+catalog.get("/products", (c) => {
+  return c.json(ProductService.getAll());
 });
 
-// Create product with image
-catalog.post("/", requireCatalogWrite, async (c) => {
-  const user = c.get("user");
-  const body = await c.req.parseBody();
+catalog.get("/products/categories", (c) => {
+  return c.json(ProductService.getCategories());
+});
 
-  const file = body.image as File;
-  if (!file) {
-    return c.json({ error: "Image required" }, 400);
-  }
-
-  const periodId = body.period_id as string;
-  const segment = body.segment as string;
-  const category = body.category as string;
-  const name = body.name as string;
-  const price = body.price as string;
-  const installments = body.installments as string;
-
-  if (!periodId || !segment || !category || !name || !price) {
-    return c.json({ error: "Missing required fields" }, 400);
-  }
-
-  // Verify period exists and is draft
-  const period = PeriodService.getById(periodId);
-  if (!period) {
-    return c.json({ error: "Período no encontrado" }, 404);
-  }
-  if (period.status !== "draft") {
-    return c.json(
-      { error: "Solo se pueden agregar productos a períodos en borrador" },
-      400,
-    );
-  }
-
-  // Store main image
-  const buffer = Buffer.from(await file.arrayBuffer());
-  const imageMainId = await imageStorage.store(buffer);
-
-  // Handle specs image if provided
-  let imageSpecsId: string | null = null;
-  const specsFile = body.specsImage as File | undefined;
-  if (specsFile) {
-    const specsBuffer = Buffer.from(await specsFile.arrayBuffer());
-    imageSpecsId = await imageStorage.store(specsBuffer);
-  }
-
-  const id = `${segment.toUpperCase()}-${Date.now()}-${Math.random().toString(36).substring(7)}`;
-  const product = CatalogService.create({
-    id,
-    period_id: periodId,
-    segment: segment as any,
-    category,
-    name,
-    description: (body.description as string) || null,
-    price: parseFloat(price),
-    installments: installments ? parseInt(installments, 10) : null,
-    image_main_id: imageMainId,
-    image_specs_id: imageSpecsId,
-    created_by: user.id,
-  });
-
-  logAction(user.id, "create_product", "product", id, {
-    name,
-    segment,
-    category,
-    period_id: periodId,
-  });
-
+catalog.get("/products/:id", (c) => {
+  const product = ProductService.getById(c.req.param("id"));
+  if (!product) return c.json({ error: "Product not found" }, 404);
   return c.json(product);
 });
 
-// Update product
-catalog.patch("/:id", requireCatalogWrite, async (c) => {
+catalog.post("/products", requireCatalogWrite, async (c) => {
+  const user = c.get("user");
+  const { name, category, brand, model, specs_json } = await c.req.json();
+
+  if (!name || !category) {
+    return c.json({ error: "Name and category required" }, 400);
+  }
+
+  const id = `prod-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const product = ProductService.create({
+    id,
+    name,
+    category,
+    brand,
+    model,
+    specs_json,
+  });
+
+  logAction(user.id, "create_product", "product", id, { name, category });
+  return c.json(product);
+});
+
+catalog.patch("/products/:id", requireCatalogWrite, async (c) => {
   const id = c.req.param("id");
   const user = c.get("user");
   const updates = await c.req.json();
 
-  // Validate updates
-  if (updates.name !== undefined && typeof updates.name !== "string") {
-    return c.json({ error: "Invalid name" }, 400);
-  }
-  if (updates.name !== undefined && updates.name.trim().length === 0) {
-    return c.json({ error: "Name cannot be empty" }, 400);
-  }
-  if (updates.category !== undefined && typeof updates.category !== "string") {
-    return c.json({ error: "Invalid category" }, 400);
-  }
-  if (updates.category !== undefined && updates.category.trim().length === 0) {
-    return c.json({ error: "Category cannot be empty" }, 400);
-  }
-  if (
-    updates.price !== undefined &&
-    (typeof updates.price !== "number" || updates.price <= 0)
-  ) {
-    return c.json({ error: "Price must be a positive number" }, 400);
-  }
-  if (updates.installments !== undefined && updates.installments !== null) {
-    if (typeof updates.installments !== "number" || updates.installments <= 0) {
-      return c.json({ error: "Installments must be a positive number" }, 400);
-    }
-  }
-  if (updates.stock_status !== undefined) {
-    if (
-      !["in_stock", "low_stock", "out_of_stock"].includes(updates.stock_status)
-    ) {
-      return c.json({ error: "Invalid stock status" }, 400);
-    }
-  }
-  if (updates.is_active !== undefined) {
-    if (updates.is_active !== 0 && updates.is_active !== 1) {
-      return c.json({ error: "is_active must be 0 or 1" }, 400);
-    }
-  }
-
-  const product = CatalogService.update(id, updates);
-
+  const product = ProductService.update(id, updates);
   logAction(user.id, "update_product", "product", id, updates);
-
-  return c.json({ success: true, product });
+  return c.json(product);
 });
 
-// Update product images
-catalog.post("/:id/images", requireCatalogWrite, async (c) => {
+// ============ BUNDLES (GASO) ============
+
+catalog.get("/bundles", (c) => {
+  const periodId = c.req.query("period_id");
+  const maxPrice = c.req.query("max_price");
+  const category = c.req.query("category");
+
+  if (periodId) {
+    return c.json(BundleService.getByPeriod(periodId));
+  }
+
+  return c.json(
+    BundleService.getAvailable({
+      maxPrice: maxPrice ? parseFloat(maxPrice) : undefined,
+      category: category || undefined,
+    }),
+  );
+});
+
+catalog.get("/bundles/categories", (c) => {
+  return c.json(BundleService.getAvailableCategories());
+});
+
+catalog.get("/bundles/:id", (c) => {
+  const bundle = BundleService.getById(c.req.param("id"));
+  if (!bundle) return c.json({ error: "Bundle not found" }, 404);
+  return c.json(bundle);
+});
+
+catalog.post("/bundles", requireCatalogWrite, async (c) => {
+  const user = c.get("user");
+  const body = await c.req.parseBody();
+
+  const file = body.image as File;
+  if (!file) return c.json({ error: "Image required" }, 400);
+
+  const periodId = body.period_id as string;
+  const name = body.name as string;
+  const price = body.price as string;
+  const primaryCategory = body.primary_category as string;
+  const categoriesJson = body.categories_json as string;
+  const compositionJson = body.composition_json as string;
+  const installmentsJson = body.installments_json as string;
+
+  if (
+    !periodId ||
+    !name ||
+    !price ||
+    !primaryCategory ||
+    !compositionJson ||
+    !installmentsJson
+  ) {
+    return c.json({ error: "Missing required fields" }, 400);
+  }
+
+  const period = PeriodService.getById(periodId);
+  if (!period) return c.json({ error: "Period not found" }, 404);
+  if (period.status !== "draft") {
+    return c.json({ error: "Can only add bundles to draft periods" }, 400);
+  }
+
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const imageId = await imageStorage.store(buffer);
+
+  const id = `bundle-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const bundle = BundleService.create({
+    id,
+    period_id: periodId,
+    name,
+    price: parseFloat(price),
+    primary_category: primaryCategory,
+    categories_json: categoriesJson || "[]",
+    image_id: imageId,
+    composition_json: compositionJson,
+    installments_json: installmentsJson,
+    created_by: user.id,
+  });
+
+  logAction(user.id, "create_bundle", "bundle", id, {
+    name,
+    price,
+    primaryCategory,
+  });
+  return c.json(bundle);
+});
+
+catalog.patch("/bundles/:id", requireCatalogWrite, async (c) => {
+  const id = c.req.param("id");
+  const user = c.get("user");
+  const updates = await c.req.json();
+
+  const bundle = BundleService.update(id, updates);
+  logAction(user.id, "update_bundle", "bundle", id, updates);
+  return c.json(bundle);
+});
+
+catalog.post("/bundles/:id/image", requireCatalogWrite, async (c) => {
   const id = c.req.param("id");
   const user = c.get("user");
   const body = await c.req.parseBody();
 
-  const existingProduct = CatalogService.getById(id);
-  if (!existingProduct) {
-    return c.json({ error: "Product not found" }, 404);
-  }
+  const file = body.image as File;
+  if (!file) return c.json({ error: "Image required" }, 400);
 
-  // Check if product's period is still draft
-  const period = PeriodService.getById(existingProduct.period_id);
+  const existing = BundleService.getById(id);
+  if (!existing) return c.json({ error: "Bundle not found" }, 404);
+
+  const period = PeriodService.getById(existing.period_id);
   if (period && period.status !== "draft") {
-    return c.json(
-      { error: "Solo se pueden editar productos en períodos en borrador" },
-      400,
-    );
+    return c.json({ error: "Can only edit bundles in draft periods" }, 400);
   }
 
-  const mainFile = body.mainImage as File | undefined;
-  const specsFile = body.specsImage as File | undefined;
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const imageId = await imageStorage.store(buffer);
+  const bundle = await BundleService.updateImage(id, imageId);
 
-  if (!mainFile && !specsFile) {
-    return c.json({ error: "At least one image required" }, 400);
-  }
-
-  let mainId: string | undefined;
-  let specsId: string | undefined;
-
-  if (mainFile) {
-    const buffer = Buffer.from(await mainFile.arrayBuffer());
-    mainId = await imageStorage.store(buffer);
-  }
-
-  if (specsFile) {
-    const buffer = Buffer.from(await specsFile.arrayBuffer());
-    specsId = await imageStorage.store(buffer);
-  }
-
-  const product = await CatalogService.updateImages(id, mainId, specsId);
-
-  logAction(user.id, "update_product_images", "product", id, {
-    mainImage: !!mainFile,
-    specsImage: !!specsFile,
-  });
-
-  return c.json({ success: true, product });
+  logAction(user.id, "update_bundle_image", "bundle", id);
+  return c.json(bundle);
 });
 
-// Bulk update products
-catalog.post("/bulk-update", requireCatalogWrite, async (c) => {
-  const user = c.get("user");
-  const { productIds, updates } = await c.req.json();
-
-  if (!Array.isArray(productIds) || productIds.length === 0) {
-    return c.json({ error: "productIds must be a non-empty array" }, 400);
-  }
-
-  if (!updates || typeof updates !== "object") {
-    return c.json({ error: "updates object required" }, 400);
-  }
-
-  // Validate bulk updates (only allow stock_status and is_active)
-  const allowedFields = ["stock_status", "is_active"];
-  const updateKeys = Object.keys(updates);
-  const invalidKeys = updateKeys.filter((k) => !allowedFields.includes(k));
-
-  if (invalidKeys.length > 0) {
-    return c.json(
-      { error: `Invalid fields for bulk update: ${invalidKeys.join(", ")}` },
-      400,
-    );
-  }
-
-  if (updates.stock_status !== undefined) {
-    if (
-      !["in_stock", "low_stock", "out_of_stock"].includes(updates.stock_status)
-    ) {
-      return c.json({ error: "Invalid stock status" }, 400);
-    }
-  }
-
-  if (updates.is_active !== undefined) {
-    if (updates.is_active !== 0 && updates.is_active !== 1) {
-      return c.json({ error: "is_active must be 0 or 1" }, 400);
-    }
-  }
-
-  const count = CatalogService.bulkUpdate(productIds, updates);
-
-  logAction(user.id, "bulk_update_products", "product", null, {
-    count,
-    productIds,
-    updates,
-  });
-
-  return c.json({ success: true, count });
-});
-
-// Delete product
-catalog.delete("/:id", requireCatalogWrite, async (c) => {
+catalog.delete("/bundles/:id", requireCatalogWrite, async (c) => {
   const id = c.req.param("id");
   const user = c.get("user");
 
-  await CatalogService.delete(id);
-
-  logAction(user.id, "delete_product", "product", id);
-
+  await BundleService.delete(id);
+  logAction(user.id, "delete_bundle", "bundle", id);
   return c.json({ success: true });
 });
 
-// Extract product data from images (AI preview)
-catalog.post("/extract-preview", requireCatalogWrite, async (c) => {
-  const body = await c.req.parseBody();
+catalog.post("/bundles/bulk-update", requireCatalogWrite, async (c) => {
+  const user = c.get("user");
+  const { ids, updates } = await c.req.json();
 
-  const mainImage = body.mainImage as File;
-  if (!mainImage) {
-    return c.json({ error: "Main image required" }, 400);
+  if (!Array.isArray(ids) || ids.length === 0) {
+    return c.json({ error: "ids must be non-empty array" }, 400);
   }
 
-  const specsImage = body.specsImage as File | undefined;
-
-  try {
-    // Convert images to buffers
-    const mainBuffer = Buffer.from(await mainImage.arrayBuffer());
-    const specsBuffer = specsImage
-      ? Buffer.from(await specsImage.arrayBuffer())
-      : undefined;
-
-    // Extract data using vision AI
-    const extractedData = await extractProductData(mainBuffer, specsBuffer);
-
-    return c.json(extractedData);
-  } catch (error) {
-    console.error("Vision extraction error:", error);
-    return c.json({ error: "Failed to extract data from images" }, 500);
-  }
+  const count = BundleService.bulkUpdate(ids, updates);
+  logAction(user.id, "bulk_update_bundles", "bundle", null, {
+    count,
+    ids,
+    updates,
+  });
+  return c.json({ success: true, count });
 });
 
-// Bulk import from CSV
-catalog.post("/bulk", requireCatalogWrite, async (c) => {
+// ============ FNB OFFERINGS ============
+
+catalog.get("/fnb", (c) => {
+  const periodId = c.req.query("period_id");
+  const maxPrice = c.req.query("max_price");
+  const category = c.req.query("category");
+
+  if (periodId) {
+    return c.json(FnbOfferingService.getByPeriod(periodId));
+  }
+
+  return c.json(
+    FnbOfferingService.getAvailable({
+      maxPrice: maxPrice ? parseFloat(maxPrice) : undefined,
+      category: category || undefined,
+    }),
+  );
+});
+
+catalog.get("/fnb/categories", (c) => {
+  return c.json(FnbOfferingService.getAvailableCategories());
+});
+
+catalog.get("/fnb/:id", (c) => {
+  const offering = FnbOfferingService.getById(c.req.param("id"));
+  if (!offering) return c.json({ error: "Offering not found" }, 404);
+  return c.json(offering);
+});
+
+catalog.post("/fnb", requireCatalogWrite, async (c) => {
   const user = c.get("user");
   const body = await c.req.parseBody();
 
-  const csvFile = body.csv as File;
-  if (!csvFile) {
-    return c.json({ error: "CSV file required" }, 400);
+  const file = body.image as File;
+  if (!file) return c.json({ error: "Image required" }, 400);
+
+  const periodId = body.period_id as string;
+  const productId = body.product_id as string;
+  const productSnapshotJson = body.product_snapshot_json as string;
+  const price = body.price as string;
+  const category = body.category as string;
+  const installments = body.installments as string;
+
+  if (!periodId || !productId || !productSnapshotJson || !price || !category) {
+    return c.json({ error: "Missing required fields" }, 400);
   }
 
-  const text = await csvFile.text();
-  const result = await BulkImportService.processCsv(text, user.id);
+  const period = PeriodService.getById(periodId);
+  if (!period) return c.json({ error: "Period not found" }, 404);
+  if (period.status !== "draft") {
+    return c.json({ error: "Can only add offerings to draft periods" }, 400);
+  }
 
-  logAction(user.id, "bulk_import", "product", null, result);
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const imageId = await imageStorage.store(buffer);
 
-  return c.json(result);
+  const id = `fnb-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const offering = FnbOfferingService.create({
+    id,
+    period_id: periodId,
+    product_id: productId,
+    product_snapshot_json: productSnapshotJson,
+    price: parseFloat(price),
+    category,
+    installments: installments ? parseInt(installments, 10) : undefined,
+    image_id: imageId,
+    created_by: user.id,
+  });
+
+  logAction(user.id, "create_fnb_offering", "fnb_offering", id, {
+    productId,
+    price,
+    category,
+  });
+  return c.json(offering);
+});
+
+catalog.patch("/fnb/:id", requireCatalogWrite, async (c) => {
+  const id = c.req.param("id");
+  const user = c.get("user");
+  const updates = await c.req.json();
+
+  const offering = FnbOfferingService.update(id, updates);
+  logAction(user.id, "update_fnb_offering", "fnb_offering", id, updates);
+  return c.json(offering);
+});
+
+catalog.post("/fnb/:id/image", requireCatalogWrite, async (c) => {
+  const id = c.req.param("id");
+  const user = c.get("user");
+  const body = await c.req.parseBody();
+
+  const file = body.image as File;
+  if (!file) return c.json({ error: "Image required" }, 400);
+
+  const existing = FnbOfferingService.getById(id);
+  if (!existing) return c.json({ error: "Offering not found" }, 404);
+
+  const period = PeriodService.getById(existing.period_id);
+  if (period && period.status !== "draft") {
+    return c.json({ error: "Can only edit offerings in draft periods" }, 400);
+  }
+
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const imageId = await imageStorage.store(buffer);
+  const offering = await FnbOfferingService.updateImage(id, imageId);
+
+  logAction(user.id, "update_fnb_image", "fnb_offering", id);
+  return c.json(offering);
+});
+
+catalog.delete("/fnb/:id", requireCatalogWrite, async (c) => {
+  const id = c.req.param("id");
+  const user = c.get("user");
+
+  await FnbOfferingService.delete(id);
+  logAction(user.id, "delete_fnb_offering", "fnb_offering", id);
+  return c.json({ success: true });
+});
+
+catalog.post("/fnb/bulk-update", requireCatalogWrite, async (c) => {
+  const user = c.get("user");
+  const { ids, updates } = await c.req.json();
+
+  if (!Array.isArray(ids) || ids.length === 0) {
+    return c.json({ error: "ids must be non-empty array" }, 400);
+  }
+
+  const count = FnbOfferingService.bulkUpdate(ids, updates);
+  logAction(user.id, "bulk_update_fnb", "fnb_offering", null, {
+    count,
+    ids,
+    updates,
+  });
+  return c.json({ success: true, count });
 });
 
 export default catalog;

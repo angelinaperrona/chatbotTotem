@@ -18,7 +18,10 @@ import {
 import { WhatsAppService } from "../services/whatsapp/index.ts";
 import { trackEvent } from "../services/analytics.ts";
 import { notifyTeam } from "../services/notifier.ts";
-import { CatalogService } from "../services/catalog.ts";
+import {
+  BundleService,
+  FnbOfferingService,
+} from "../services/catalog/index.ts";
 import * as LLM from "../services/llm.ts";
 import * as T from "@totem/core";
 import { selectVariant, formatFirstName } from "@totem/core";
@@ -89,9 +92,10 @@ async function executeTransition(
   // 2. Extract product category (in OFFER_PRODUCTS state)
   if (state === "OFFER_PRODUCTS" && !context.offeredCategory) {
     // Get available categories from database for this segment
-    const availableCategories = CatalogService.getAvailableCategories(
-      context.segment,
-    );
+    const availableCategories =
+      context.segment === "fnb"
+        ? FnbOfferingService.getAvailableCategories()
+        : BundleService.getAvailableCategories();
 
     const category = await LLM.extractEntity(message, "product_category", {
       availableCategories,
@@ -355,56 +359,102 @@ async function handleSendImages(
   const segment = context.segment || "fnb";
   const creditLine = context.creditLine || 0;
 
-  let products = CatalogService.getActiveBySegment(segment).filter((p) =>
-    p.category.toLowerCase().includes(category.toLowerCase()),
-  );
+  // Get products based on segment (GASO = bundles, FNB = offerings)
+  if (segment === "gaso") {
+    const bundles = BundleService.getAvailable({
+      maxPrice: creditLine,
+      category,
+    }).slice(0, 3);
 
-  // Filter by available credit for both FNB and Gaso clients
-  // Note: creditLine of 0 means no credit, should return no products
-  products = products.filter((p) => p.price <= creditLine);
-
-  // Take top 3 products
-  products = products.slice(0, 3);
-
-  if (products.length === 0) {
-    const { message: noStockMsg, updatedContext: variantCtx } = selectVariant(
-      T.NO_STOCK,
-      "NO_STOCK",
-      context,
-    );
-    updateConversationState(phoneNumber, conv.current_state, variantCtx);
-
-    if (isSimulation) {
-      WhatsAppService.logMessage(
-        phoneNumber,
-        "outbound",
-        "text",
-        noStockMsg,
-        "sent",
-      );
-    } else {
-      await WhatsAppService.sendMessage(phoneNumber, noStockMsg);
+    if (bundles.length === 0) {
+      await sendNoStockMessage(conv, context);
+      return;
     }
-    return;
+
+    for (const bundle of bundles) {
+      // Format installments info from schedule
+      const installments = JSON.parse(bundle.installments_json);
+      const firstOption = installments[0];
+      const installmentText = firstOption
+        ? `Desde S/ ${firstOption.monthlyAmount.toFixed(2)}/mes (${firstOption.months} cuotas)`
+        : "";
+
+      const caption = `${bundle.name}\nPrecio: S/ ${bundle.price.toFixed(2)}${installmentText ? `\n${installmentText}` : ""}`;
+
+      if (isSimulation) {
+        WhatsAppService.logMessage(
+          phoneNumber,
+          "outbound",
+          "image",
+          caption,
+          "sent",
+        );
+      } else {
+        await WhatsAppService.sendImage(
+          phoneNumber,
+          `images/${bundle.image_id}.jpg`,
+          caption,
+        );
+      }
+    }
+  } else {
+    // FNB segment - individual offerings
+    const offerings = FnbOfferingService.getAvailable({
+      maxPrice: creditLine,
+      category,
+    }).slice(0, 3);
+
+    if (offerings.length === 0) {
+      await sendNoStockMessage(conv, context);
+      return;
+    }
+
+    for (const offering of offerings) {
+      const snapshot = JSON.parse(offering.product_snapshot_json);
+      const caption = `${snapshot.name}\nPrecio: S/ ${offering.price.toFixed(2)}${offering.installments ? `\nCuotas: ${offering.installments} meses` : ""}`;
+
+      if (isSimulation) {
+        WhatsAppService.logMessage(
+          phoneNumber,
+          "outbound",
+          "image",
+          caption,
+          "sent",
+        );
+      } else {
+        await WhatsAppService.sendImage(
+          phoneNumber,
+          `images/${offering.image_id}.jpg`,
+          caption,
+        );
+      }
+    }
   }
+}
 
-  for (const product of products) {
-    const caption = `${product.name}\nPrecio: S/ ${product.price.toFixed(2)}${product.installments ? `\nCuotas: ${product.installments} meses` : ""}`;
+async function sendNoStockMessage(
+  conv: Conversation,
+  context: StateContext,
+): Promise<void> {
+  const phoneNumber = conv.phone_number;
+  const isSimulation = conv.is_simulation === 1;
 
-    if (isSimulation) {
-      WhatsAppService.logMessage(
-        phoneNumber,
-        "outbound",
-        "image",
-        caption,
-        "sent",
-      );
-    } else {
-      await WhatsAppService.sendImage(
-        phoneNumber,
-        `images/${product.image_main_id}.jpg`,
-        caption,
-      );
-    }
+  const { message: noStockMsg, updatedContext: variantCtx } = selectVariant(
+    T.NO_STOCK,
+    "NO_STOCK",
+    context,
+  );
+  updateConversationState(phoneNumber, conv.current_state, variantCtx);
+
+  if (isSimulation) {
+    WhatsAppService.logMessage(
+      phoneNumber,
+      "outbound",
+      "text",
+      noStockMsg,
+      "sent",
+    );
+  } else {
+    await WhatsAppService.sendMessage(phoneNumber, noStockMsg);
   }
 }
