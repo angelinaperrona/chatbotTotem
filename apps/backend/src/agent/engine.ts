@@ -21,6 +21,7 @@ const MAINTENANCE_MESSAGE =
 export async function processMessage(
   phoneNumber: string,
   message: string,
+  metadata?: { isBacklog: boolean; oldestMessageAge: number },
 ): Promise<void> {
   // Check maintenance mode before processing
   if (isMaintenanceMode()) {
@@ -34,7 +35,7 @@ export async function processMessage(
   if (conv.current_state === "CLOSING" || conv.current_state === "ESCALATED") {
     resetSession(phoneNumber);
     const resetConv = getOrCreateConversation(phoneNumber);
-    await executeTransition(resetConv, message);
+    await executeTransition(resetConv, message, metadata);
     return;
   }
 
@@ -42,19 +43,34 @@ export async function processMessage(
   if (checkSessionTimeout(conv) && conv.current_state !== "INIT") {
     resetSession(phoneNumber);
     const resetConv = getOrCreateConversation(phoneNumber);
-    await executeTransition(resetConv, message);
+    await executeTransition(resetConv, message, metadata);
     return;
   }
 
-  await executeTransition(conv, message);
+  await executeTransition(conv, message, metadata);
 }
 
 async function executeTransition(
   conv: Conversation,
   message: string,
+  metadata?: { isBacklog: boolean; oldestMessageAge: number },
 ): Promise<void> {
   const context = buildStateContext(conv);
   const state = conv.current_state;
+
+  // BACKLOG: If client sent messages while bot was offline
+  if (metadata?.isBacklog && state === "INIT") {
+    const ageMinutes = Math.floor(metadata.oldestMessageAge / 60000);
+    const backlogResponse = await LLM.handleBacklogResponse(
+      message,
+      ageMinutes,
+    );
+
+    // Send LLM-generated contextual response acknowledging the delay
+    await WhatsAppService.sendMessage(conv.phone_number, backlogResponse);
+
+    // Continue processing normally
+  }
 
   // SELECTIVE LLM ENRICHMENT (backend pre-processing)
 
