@@ -68,7 +68,7 @@ export async function initializeWhatsAppClient() {
     const isGroupMessage = msg.from.endsWith("@g.us");
     const isCommand = msg.body?.startsWith("@") || false;
 
-    messageLogger.debug(
+    messageLogger.info(
       {
         from: msg.from,
         body: msg.body?.substring(0, 50),
