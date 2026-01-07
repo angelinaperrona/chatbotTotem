@@ -280,7 +280,7 @@ onMount(() => {
 <Modal 
   bind:open={isCreateModalOpen} 
   onClose={closeCreateModal}
-  title="Crear Nuevo Periodo"
+  title="Crear nuevo periodo"
   subtitle="Configuración inicial"
 >
   <div class="space-y-6">
@@ -309,12 +309,12 @@ onMount(() => {
 <Modal 
   bind:open={isPublishModalOpen} 
   onClose={closePublishModal}
-  title="Publicar Periodo"
+  title="Publicar periodo"
   subtitle="Confirmación de activación"
 >
   <div class="space-y-4">
     <div class="p-4 bg-amber-50 border border-amber-200 rounded-md text-amber-900 text-sm">
-      <p class="font-bold mb-2">⚠ Atención</p>
+      <p class="font-bold mb-2">Atención</p>
       <p>Estás a punto de publicar el periodo <strong>{selectedPeriod?.name}</strong>.</p>
     </div>
 
