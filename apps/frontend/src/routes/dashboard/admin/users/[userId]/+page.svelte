@@ -107,7 +107,7 @@ onMount(loadUser);
         <div class="space-y-8">
             <!-- Role & Permissions Section -->
             <div class="bg-white border border-cream-200 shadow-sm p-8">
-                <h2 class="text-lg font-serif mb-6 border-b border-cream-100 pb-2">Rol y Permisos</h2>
+                <h2 class="text-lg font-serif mb-6 border-b border-cream-100 pb-2">Rol y permisos</h2>
                 
                 <div class="space-y-6">
                     <FormField label="Rol asignado" for="role">
@@ -130,9 +130,9 @@ onMount(loadUser);
                 </div>
             </div>
 
-            <!-- Security Section -->
+            <!-- Security section -->
             <div class="bg-white border border-cream-200 shadow-sm p-8">
-                <h2 class="text-lg font-serif mb-6 border-b border-cream-100 pb-2">Seguridad y Acceso</h2>
+                <h2 class="text-lg font-serif mb-6 border-b border-cream-100 pb-2">Seguridad y acceso</h2>
                 
                 <div class="flex items-center justify-between py-4 border-b border-cream-100">
                     <div>

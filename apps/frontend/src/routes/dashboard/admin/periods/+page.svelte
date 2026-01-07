@@ -194,7 +194,7 @@ onMount(() => {
 
 <div class="space-y-6">
   <SectionShell 
-      title="Gestión de Periodos" 
+      title="Gestión de periodos" 
       description="Administra los ciclos de venta y publicación de catálogos."
       action={headerAction}
   >
