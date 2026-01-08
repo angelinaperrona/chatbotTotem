@@ -9,6 +9,12 @@ export type Command =
   | { type: "TRACK_EVENT"; eventType: string; metadata: Record<string, any> }
   | { type: "ESCALATE"; reason: string };
 
+export type SentProduct = {
+  id: string;
+  name: string;
+  position: number; // 1-based index in the sent batch
+};
+
 export type StateContext = {
   phoneNumber: string;
   dni?: string;
@@ -27,6 +33,8 @@ export type StateContext = {
   sessionStartedAt?: string;
   waitingMessageCount?: number;
   purchaseConfirmed?: boolean;
+  // Product tracking for smart selection
+  sentProducts?: SentProduct[]; // Products sent in last SEND_IMAGES command
   // Backend enrichment flags
   llmDetectedQuestion?: boolean;
   llmGeneratedAnswer?: string;

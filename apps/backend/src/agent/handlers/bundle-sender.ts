@@ -1,8 +1,9 @@
-import type { StateContext } from "@totem/core";
+import type { StateContext, SentProduct } from "@totem/core";
 import type { Conversation } from "@totem/types";
 import { BundleService } from "../../services/catalog/index.ts";
 import { WhatsAppService } from "../../services/whatsapp/index.ts";
 import { handleNoStock } from "./no-stock.ts";
+import { updateConversationState } from "../context.ts";
 
 /**
  * Sends bundle images to customer with installment details
@@ -65,19 +66,56 @@ export async function handleSendImages(
   const segment = context.segment || "fnb";
   const creditLine = context.creditLine || 0;
 
-  // Send bundle images
-  const sent = await sendBundleImages({
-    phoneNumber,
-    segment,
+  // Get available bundles
+  const bundles = BundleService.getAvailable({
+    maxPrice: creditLine,
     category,
-    creditLine,
-    isSimulation,
-  });
+    segment,
+  }).slice(0, 3);
 
-  if (!sent) {
+  if (bundles.length === 0) {
     await handleNoStock(conv, category, context);
     return;
   }
+
+  // Track sent products for smart selection matching
+  const sentProducts: SentProduct[] = bundles.map((bundle, index) => ({
+    id: bundle.id,
+    name: bundle.name,
+    position: index + 1, // 1-based
+  }));
+
+  // Send each bundle image with formatted caption
+  for (const bundle of bundles) {
+    const installments = JSON.parse(bundle.installments_json);
+    const firstOption = installments[0];
+    const installmentText = firstOption
+      ? `Desde S/ ${firstOption.monthlyAmount.toFixed(2)}/mes (${firstOption.months} cuotas)`
+      : "";
+
+    const caption = `${bundle.name}\nPrecio: S/ ${bundle.price.toFixed(2)}${installmentText ? `\n${installmentText}` : ""}`;
+
+    if (isSimulation) {
+      WhatsAppService.logMessage(
+        phoneNumber,
+        "outbound",
+        "image",
+        caption,
+        "sent",
+      );
+    } else {
+      await WhatsAppService.sendImage(
+        phoneNumber,
+        `images/${bundle.image_id}.jpg`,
+        caption,
+      );
+    }
+  }
+
+  // Update conversation context with sent products
+  updateConversationState(phoneNumber, conv.current_state, {
+    sentProducts,
+  });
 
   // Send follow-up message
   const followUp =

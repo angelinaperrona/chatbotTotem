@@ -1,0 +1,271 @@
+# Analysis
+
+1. Data flow analysis
+
+Flow 1: inbound message (the user)
+Path: webhook.ts -> debouncer.ts -> engine.ts -> transitions.ts (core) -> dispatcher.ts -> WhatsAppService.
+
+A couple problems:
+- engine.ts is doing too much. It handles maintenance checks, session timeouts, LLM classification, extraction, and calls the state machine.
+- the LLM calls in engine.ts happen sequentially before the state transition. If OpenAI or Gemini hangs, your webhook hangs.
+
+Suggestion: engine.ts should be a pipeline of small, isolated functions, not one giant async function.
+
+Flow 2: agent operations (the salesperson)
+Path: frontend -> routes/conversations.ts -> db/connection.ts.
+The problem: the routes/conversations.ts file is manually constructing SQL queries, handling file system logic for contracts, and executing business logic (reassignment). The data flow is frontend -> HTTP handler -> raw SQL. This makes the route handler massive and hard to maintain. Routes are strictly for HTTP I/O. They validate inputs and call a module.
+
+File: apps/backend/src/routes/conversations.ts
+
+```ts
+import { Hono } from "hono";
+
+app.get("/:phone", (c) => {
+const phone = c.req.param("phone");
+const data = getConversationHistory(phone);
+
+if (!data) return c.json({ error: "Not found" }, 404);
+return c.json(data);
+});
+
+app.post("/:phone/assign", async (c) => {
+const phone = c.req.param("phone");
+const result = await assignAgent(phone);
+return c.json(result);
+});
+```
+
+Flow 3: catalog management (the admin)
+Path: frontend -> routes/catalog.ts -> services/catalog/bundles.ts.
+The problem: BundleService.getAvailable constructs SQL strings via concatenation (query +=). While not an immediate security risk due to parameter binding, it is fragile and hard to read.
+
+2. Code maintainability
+
+- packages/core/src/state-machine/transitions.ts mixes init logic, DNI collection logic, and sales logic in one file. If you want to change how init works, you risk breaking sales. Instead of one massive file, transition.ts becomes a dispatcher.
+
+File: packages/core/src/machines/router.ts
+
+```ts
+import { handleInit } from "./states/init";
+import { handleCollectDni } from "./states/collect-dni";
+
+const handlers = {
+INIT: handleInit,
+COLLECT_DNI: handleCollectDni
+};
+
+export function transition(input) {
+const handler = handlers[input.currentState];
+
+if (!handler) {
+console.error("Unknown state:", input.currentState);
+return { nextState: input.currentState, commands: [], updatedContext: {} };
+}
+
+return handler(input);
+}
+```
+
+File: packages/core/src/machines/states/collect-dni.ts
+
+```ts
+import { extractDNI } from "../../logic/regex";
+import { selectVariant } from "../../logic/variants";
+import { DNI_MESSAGES } from "../../prompts/standard";
+
+export function handleCollectDni({ message, context }) {
+const dni = extractDNI(message);
+
+if (dni) {
+return {
+nextState: "WAITING_PROVIDER",
+commands: [{ type: "CHECK_PROVIDER", dni }],
+updatedContext: { dni }
+};
+}
+
+const { text } = selectVariant(DNI_MESSAGES.INVALID, context);
+
+return {
+nextState: "COLLECT_DNI",
+commands: [{ type: "SEND_MESSAGE", content: text }],
+updatedContext: {}
+};
+}
+```
+
+- apps/backend/src/services/providers.ts is one file handling FNB auth, FNB logic, PowerBI requests (logic plus scraping), and fallback orchestration. It conflates fetching data (infrastructure) with deciding eligibility (domain logic). We should split the logic into specific clients and one orchestrator.
+
+- apps/backend/src/routes/conversations.ts contains SQL logic, file system logic, and validation logic. Routes should define endpoints, not implementation details. Move state handlers to packages/core/src/state-machine/handlers/*.ts.
+
+Some ideas:
+- Move SQL logic to services/conversation-data.ts.
+- Move file upload logic to services/contract-manager.ts.
+- The route should only validate input and call these functions.
+
+3. Patterns we could simplify
+
+- Database access (excessive use of "as any"). If the DB schema changes, the code compiles fine but crashes at runtime. Define types for your SQL results to catch errors during build. Wrap bun:sqlite in a generic function that enforces types.
+
+File: apps/backend/src/db/query.ts
+
+```ts
+import { db } from "./client";
+
+export function getOne<T>(sql: string, params: unknown[] = []): T | undefined {
+return db.prepare(sql).get(...params) as T | undefined;
+}
+
+export function getAll<T>(sql: string, params: unknown[] = []): T[] {
+return db.prepare(sql).all(...params) as T[];
+}
+
+export function run(sql: string, params: unknown[] = []): { changes: number } {
+const info = db.prepare(sql).run(...params);
+return { changes: info.changes };
+}
+```
+
+- apps/backend/src/services/llm.ts contains hardcoded template strings for prompts inside the functions. We could move prompts to packages/core/src/prompts.ts. Keep logic and content separate.
+
+- debouncer.ts uses a new Map() to store message buffers. If the process restarts (deployment or crash), user messages stuck in the buffer are lost forever. An idea could be to write every message to the DB with status pending_processing. A background loop (or the webhook trigger) processes them. This ensures zero data loss on restart.
+
+- webhook swallows errors (catch { ... }) in cloud-api.ts. Errors should be logged to the DB or console.
+
+- We could also remove side effects from the engine and make it a pure coordinator. It does not do the work; it calls the functions that do the work.
+
+File: apps/backend/src/modules/chat/pipeline.ts
+
+```ts
+import { transition } from "@totem/core/machines/router";
+
+export async function processUserMessage(phone: string, text: string) {
+let conv = getConversation(phone);
+if (!conv) conv = await createConversation(phone);
+
+let intent = null;
+if (!["INIT", "COLLECT_DNI"].includes(conv.current_state)) {
+intent = await LLM.classify(text);
+}
+
+const output = transition({
+currentState: conv.current_state,
+message: text,
+context: { ...conv.context, intent }
+});
+
+updateConversation(phone, output.nextState, output.updatedContext);
+await executeCommands(phone, output.commands);
+}
+```
+
+---
+
+The monorepo structure could end up looking like this:
+
+```bash
+├── apps
+│   └── backend  # The Hono API & Runtime Infrastructure
+└── packages
+    ├── core     # Pure Business Logic (No DB access, No HTTP calls)
+    └── types    # Shared Interfaces (DTOs, DB Types)
+```
+
+apps/backend (infrastructure and runtime)
+
+```text
+apps/backend/src/
+├── db/                           # Database Access Layer
+│   ├── client.ts                 # Singleton SQLite instance
+│   ├── query.ts                  # Generic typed wrappers (getOne<T>, getAll<T>)
+│   ├── schema.sql                # Source of truth for DB structure
+│   ├── seed.ts                   # Seeding logic
+│   └── types.ts                  # TS Interfaces matching SQL tables
+│
+├── modules/                      # Domain Features (NOT "Services")
+│   │
+│   ├── auth/                     # Authentication
+│   │   ├── session.ts            # Token logic
+│   │   └── hashing.ts            # Bcrypt wrappers
+│   │
+│   ├── catalog/                  # Product Catalog
+│   │   ├── read.ts               # Public catalog queries
+│   │   ├── write.ts              # Admin mutations
+│   │   └── import.ts             # CSV Bulk import logic
+│   │
+│   ├── chat/                     # The Messaging Engine
+│   │   ├── pipeline.ts           # Main entry: Message -> LLM -> Core -> DB -> Reply
+│   │   ├── debouncer.ts          # Handling rapid-fire messages (DB backed)
+│   │   ├── history.ts            # Fetching msg history
+│   │   └── dispatcher.ts         # Executing commands (SEND_MSG, NOTIFY, etc)
+│   │
+│   ├── conversation/             # Conversation State Management
+│   │   ├── read.ts               # Get current state
+│   │   ├── write.ts              # Update state/context
+│   │   └── media.ts              # Handling contract/audio uploads
+│   │
+│   ├── llm/                      # AI Integration
+│   │   ├── client.ts             # OpenAI/Gemini instance
+│   │   └── classifiers.ts        # Specific classification functions
+│   │
+│   ├── providers/                # External Data Sources (The anti-God-file fix)
+│   │   ├── fnb.ts                # Just FNB/Calidda fetching
+│   │   ├── gaso.ts               # Just PowerBI scraping
+│   │   └── orchestrator.ts       # Logic: Try FNB -> Fallback Gaso -> Return Result
+│   │
+│   └── sales/                    # Human Agent Workflow
+│       ├── assignment.ts         # Round-robin logic
+│       ├── orders.ts             # Order creation/updates
+│       └── notifier.ts           # Webhook calls to agent tools
+│
+├── routes/                       # Thin HTTP Controllers
+│   ├── admin.ts
+│   ├── analytics.ts
+│   ├── auth.ts
+│   ├── catalog.ts
+│   ├── conversations.ts
+│   ├── orders.ts
+│   └── webhook.ts                # WhatsApp Webhook entry point
+│
+├── middleware/
+│   ├── auth.ts
+│   ├── error.ts
+│   └── rate-limit.ts
+│
+└── index.ts                      # App Entry point (Hono setup)
+```
+
+packages/core (the brain)
+
+This layer handles rules. It contains no database calls and no fetch calls. It is pure input/output.
+
+```text
+packages/core/src/
+├── content/                      # Text & Copy (Separated from logic)
+│   ├── prompts.ts                # LLM System Prompts
+│   ├── scripts.ts                # Standard message templates (Greetings, Errors)
+│   └── variants.ts               # Logic to rotate message variations
+│
+├── logic/                        # Pure Calculations & Regex
+│   ├── eligibility-fnb.ts        # Credit tier calculation
+│   ├── eligibility-gaso.ts       # Age/NSE Matrix logic
+│   ├── matching.ts               # Product fuzzy matching
+│   ├── regex.ts                  # DNI extraction, etc.
+│   └── tone.ts                   # Tone detection logic
+│
+├── machines/                     # The State Machine
+│   ├── router.ts                 # Main Switch: (State, Input) -> Handler
+│   ├── types.ts                  # Definition of StateContext, Commands
+│   │
+│   └── states/                   # Individual Handlers (Strict <70 lines)
+│       ├── init.ts
+│       ├── confirm-client.ts
+│       ├── collect-dni.ts
+│       ├── waiting-provider.ts
+│       ├── collect-age.ts
+│       ├── offer-products.ts
+│       ├── handle-objection.ts
+│       └── closing.ts
+│
+└── index.ts                      # Public API exports
+```

@@ -33,7 +33,7 @@ FORMATO: Respuestas cortas (2-3 líneas máximo). Siempre cierra preguntando qu�
 
 export async function classifyIntent(
   message: string,
-): Promise<"yes" | "no" | "question" | "unclear"> {
+): Promise<"yes" | "no" | "question" | "product_selection" | "unclear"> {
   try {
     const completion = await client.chat.completions.create({
       model: MODEL,
@@ -43,14 +43,18 @@ export async function classifyIntent(
           content: `Clasifica la intención del mensaje del usuario en español.
 
 REGLAS:
-- "yes": Afirmaciones (sí, claro, ok, vale, dale, por supuesto, afirmativo, correcto, sep)
+- "yes": Afirmaciones simples (sí, claro, ok, vale, dale, por supuesto, afirmativo, correcto, sep)
 - "no": Negaciones (no, nada, no gracias, paso, negativo, para nada)
 - "question": SOLO preguntas reales (contiene ?, o palabras interrogativas: qué/cuánto/cómo/dónde/cuándo/por qué)
-- "unclear": Expresiones de interés ("me interesa", "quiero", "busco"), menciones de productos, o mensajes confusos
+- "product_selection": Menciona nombre/modelo de producto específico (Samsung, iPhone, Galaxy A26, Mabe, LG, etc.) O dice ordinal (primero, segundo, el 1, el 2)
+- "unclear": Expresiones genéricas de interés ("me interesan celulares", "quiero ver laptops"), o mensajes confusos
 
-IMPORTANTE: "Me interesa X", "Quiero Y", "Busco Z" son expresiones de interés, NO preguntas → "unclear"
+IMPORTANTE: 
+- "Me interesa el Samsung Galaxy A26" → "product_selection" (producto específico)
+- "Me interesan celulares" → "unclear" (categoría genérica)
+- "El primero" o "el segundo" → "product_selection" (selección por posición)
 
-Responde SOLO con JSON: {"intent": "yes"|"no"|"question"|"unclear"}`,
+Responde SOLO con JSON: {"intent": "yes"|"no"|"question"|"product_selection"|"unclear"}`,
         },
         { role: "user", content: message },
       ],
