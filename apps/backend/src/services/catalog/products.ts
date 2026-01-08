@@ -1,33 +1,21 @@
 import { db } from "../../db/index.ts";
+import { getOne, getAll } from "../../db/query.ts";
 import type { Product } from "@totem/types";
-
-function formatProduct(row: any): Product {
-  return {
-    ...row,
-    created_at: new Date(row.created_at).toISOString(),
-  };
-}
 
 export const ProductService = {
   getAll: (): Product[] => {
-    const rows = db
-      .prepare("SELECT * FROM products ORDER BY category, name")
-      .all() as any[];
-    return rows.map(formatProduct);
+    return getAll<Product>("SELECT * FROM products ORDER BY category, name");
   },
 
   getByCategory: (category: string): Product[] => {
-    const rows = db
-      .prepare("SELECT * FROM products WHERE category = ? ORDER BY name")
-      .all(category) as any[];
-    return rows.map(formatProduct);
+    return getAll<Product>(
+      "SELECT * FROM products WHERE category = ? ORDER BY name",
+      [category],
+    );
   },
 
   getById: (id: string): Product | null => {
-    const row = db
-      .prepare("SELECT * FROM products WHERE id = ?")
-      .get(id) as any;
-    return row ? formatProduct(row) : null;
+    return getOne<Product>("SELECT * FROM products WHERE id = ?", [id]) || null;
   },
 
   create: (data: {
@@ -86,9 +74,9 @@ export const ProductService = {
   },
 
   getCategories: (): string[] => {
-    const rows = db
-      .prepare("SELECT DISTINCT category FROM products ORDER BY category")
-      .all() as Array<{ category: string }>;
+    const rows = getAll<{ category: string }>(
+      "SELECT DISTINCT category FROM products ORDER BY category",
+    );
     return rows.map((r) => r.category);
   },
 };

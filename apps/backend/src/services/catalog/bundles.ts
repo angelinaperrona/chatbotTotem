@@ -1,4 +1,6 @@
 import { db } from "../../db/index.ts";
+import { getOne, getAll } from "../../db/query.ts";
+import type { SQLQueryBindings } from "bun:sqlite";
 import type { Bundle } from "@totem/types";
 import { imageStorage } from "../image-storage.ts";
 
@@ -9,29 +11,22 @@ type BundleFilters = {
   segment?: "gaso" | "fnb";
 };
 
-function formatBundle(row: any): Bundle {
-  return {
-    ...row,
-    created_at: new Date(row.created_at).toISOString(),
-    updated_at: new Date(row.updated_at).toISOString(),
-  };
-}
-
 export const BundleService = {
   /** Get all bundles for a period (dashboard) */
   getByPeriod: (periodId: string, segment?: "gaso" | "fnb"): Bundle[] => {
-    let query = "SELECT * FROM catalog_bundles WHERE period_id = ?";
-    const params: any[] = [periodId];
-
     if (segment) {
-      query += " AND segment = ?";
-      params.push(segment);
+      const rows = getAll<Bundle>(
+        "SELECT * FROM catalog_bundles WHERE period_id = ? AND segment = ? ORDER BY primary_category, price",
+        [periodId, segment],
+      );
+      return rows;
     }
 
-    query += " ORDER BY primary_category, price";
-
-    const rows = db.prepare(query).all(...params) as any[];
-    return rows.map(formatBundle);
+    const rows = getAll<Bundle>(
+      "SELECT * FROM catalog_bundles WHERE period_id = ? ORDER BY primary_category, price",
+      [periodId],
+    );
+    return rows;
   },
 
   /** Get available bundles for bot (active period, filters) */
@@ -43,7 +38,7 @@ export const BundleService = {
         AND b.is_active = 1
         AND b.stock_status != 'out_of_stock'
     `;
-    const params: any[] = [];
+    const params: SQLQueryBindings[] = [];
 
     if (filters.segment) {
       query += " AND b.segment = ?";
@@ -63,15 +58,15 @@ export const BundleService = {
 
     query += " ORDER BY b.price ASC";
 
-    const rows = db.prepare(query).all(...params) as any[];
-    return rows.map(formatBundle);
+    const rows = getAll<Bundle>(query, params);
+    return rows;
   },
 
   getById: (id: string): Bundle | null => {
-    const row = db
-      .prepare("SELECT * FROM catalog_bundles WHERE id = ?")
-      .get(id) as any;
-    return row ? formatBundle(row) : null;
+    const row = getOne<Bundle>("SELECT * FROM catalog_bundles WHERE id = ?", [
+      id,
+    ]);
+    return row || null;
   },
 
   create: (data: {
@@ -165,23 +160,24 @@ export const BundleService = {
   },
 
   getAvailableCategories: (segment?: "gaso" | "fnb"): string[] => {
-    let query = `
-      SELECT DISTINCT b.primary_category as category FROM catalog_bundles b
-      JOIN catalog_periods p ON b.period_id = p.id
-      WHERE p.status = 'active' AND b.is_active = 1 AND b.stock_status != 'out_of_stock'
-    `;
-    const params: any[] = [];
-
     if (segment) {
-      query += " AND b.segment = ?";
-      params.push(segment);
+      const rows = getAll<{ category: string }>(
+        `SELECT DISTINCT b.primary_category as category FROM catalog_bundles b
+         JOIN catalog_periods p ON b.period_id = p.id
+         WHERE p.status = 'active' AND b.is_active = 1 AND b.stock_status != 'out_of_stock'
+           AND b.segment = ?
+         ORDER BY b.primary_category`,
+        [segment],
+      );
+      return rows.map((r) => r.category);
     }
 
-    query += " ORDER BY b.primary_category";
-
-    const rows = db.prepare(query).all(...params) as Array<{
-      category: string;
-    }>;
+    const rows = getAll<{ category: string }>(
+      `SELECT DISTINCT b.primary_category as category FROM catalog_bundles b
+       JOIN catalog_periods p ON b.period_id = p.id
+       WHERE p.status = 'active' AND b.is_active = 1 AND b.stock_status != 'out_of_stock'
+       ORDER BY b.primary_category`,
+    );
     return rows.map((r) => r.category);
   },
 };

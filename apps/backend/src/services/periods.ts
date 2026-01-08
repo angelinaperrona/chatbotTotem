@@ -1,4 +1,5 @@
 import { db } from "../db/index.ts";
+import { getOne, getAll } from "../db/query.ts";
 import type { CatalogPeriod, PeriodStatus } from "@totem/types";
 
 type CreatePeriodData = {
@@ -7,43 +8,36 @@ type CreatePeriodData = {
   created_by: string;
 };
 
-function formatPeriod(row: any): CatalogPeriod {
-  return {
-    ...row,
-    published_at: row.published_at
-      ? new Date(row.published_at).toISOString()
-      : null,
-    created_at: new Date(row.created_at).toISOString(),
-  };
-}
-
 export const PeriodService = {
   getAll: (): CatalogPeriod[] => {
-    const rows = db
-      .prepare("SELECT * FROM catalog_periods ORDER BY year_month DESC")
-      .all() as any[];
-    return rows.map(formatPeriod);
+    return getAll<CatalogPeriod>(
+      "SELECT * FROM catalog_periods ORDER BY year_month DESC",
+    );
   },
 
   getById: (id: string): CatalogPeriod | null => {
-    const row = db
-      .prepare("SELECT * FROM catalog_periods WHERE id = ?")
-      .get(id) as any;
-    return row ? formatPeriod(row) : null;
+    return (
+      getOne<CatalogPeriod>("SELECT * FROM catalog_periods WHERE id = ?", [
+        id,
+      ]) || null
+    );
   },
 
   getActive: (): CatalogPeriod | null => {
-    const row = db
-      .prepare("SELECT * FROM catalog_periods WHERE status = 'active' LIMIT 1")
-      .get() as any;
-    return row ? formatPeriod(row) : null;
+    return (
+      getOne<CatalogPeriod>(
+        "SELECT * FROM catalog_periods WHERE status = 'active' LIMIT 1",
+      ) || null
+    );
   },
 
   getByYearMonth: (yearMonth: string): CatalogPeriod | null => {
-    const row = db
-      .prepare("SELECT * FROM catalog_periods WHERE year_month = ?")
-      .get(yearMonth) as any;
-    return row ? formatPeriod(row) : null;
+    return (
+      getOne<CatalogPeriod>(
+        "SELECT * FROM catalog_periods WHERE year_month = ?",
+        [yearMonth],
+      ) || null
+    );
   },
 
   create: (data: CreatePeriodData): CatalogPeriod => {
@@ -95,11 +89,10 @@ export const PeriodService = {
     }
 
     // Check for bundles
-    const bundleCount = db
-      .prepare(
-        "SELECT COUNT(*) as count FROM catalog_bundles WHERE period_id = ?",
-      )
-      .get(id) as { count: number };
+    const bundleCount = getOne<{ count: number }>(
+      "SELECT COUNT(*) as count FROM catalog_bundles WHERE period_id = ?",
+      [id],
+    )!;
 
     if (bundleCount.count > 0) {
       return {

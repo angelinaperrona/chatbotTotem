@@ -1,4 +1,6 @@
 import { db } from "../db/connection";
+import { getOne, getAll } from "../db/query.ts";
+import type { SQLQueryBindings } from "bun:sqlite";
 import type { Order } from "@totem/types";
 import { notifyTeam } from "./notifier";
 
@@ -79,7 +81,7 @@ export class OrdersService {
 
   getOrders(filters: OrderFilters = {}): Order[] {
     let query = "SELECT * FROM orders WHERE 1=1";
-    const params: any[] = [];
+    const params: SQLQueryBindings[] = [];
 
     if (filters.status) {
       query += " AND status = ?";
@@ -111,42 +113,21 @@ export class OrdersService {
     query += " LIMIT ? OFFSET ?";
     params.push(limit, offset);
 
-    const stmt = db.prepare(query);
-    const rows = stmt.all(...params) as any[];
-
-    return rows.map((row) => ({
-      ...row,
-      created_at: new Date(row.created_at).toISOString(),
-      updated_at: new Date(row.updated_at).toISOString(),
-    }));
+    const rows = getAll<Order>(query, params);
+    return rows;
   }
 
   getOrderById(id: string): Order | null {
-    const stmt = db.prepare("SELECT * FROM orders WHERE id = ?");
-    const row = stmt.get(id) as any;
-
-    if (!row) return null;
-
-    return {
-      ...row,
-      created_at: new Date(row.created_at).toISOString(),
-      updated_at: new Date(row.updated_at).toISOString(),
-    };
+    return getOne<Order>("SELECT * FROM orders WHERE id = ?", [id]) || null;
   }
 
   getOrderByConversation(phone: string): Order | null {
-    const stmt = db.prepare(
-      "SELECT * FROM orders WHERE conversation_phone = ? ORDER BY created_at DESC LIMIT 1",
+    return (
+      getOne<Order>(
+        "SELECT * FROM orders WHERE conversation_phone = ? ORDER BY created_at DESC LIMIT 1",
+        [phone],
+      ) || null
     );
-    const row = stmt.get(phone) as any;
-
-    if (!row) return null;
-
-    return {
-      ...row,
-      created_at: new Date(row.created_at).toISOString(),
-      updated_at: new Date(row.updated_at).toISOString(),
-    };
   }
 
   updateOrderStatus(
@@ -179,65 +160,38 @@ export class OrdersService {
     const now = Date.now();
     const thirtyDaysAgo = now - 30 * 24 * 60 * 60 * 1000;
 
-    const totalOrders = (
-      db.prepare("SELECT COUNT(*) as count FROM orders").get() as any
-    ).count;
+    const totalOrders = getOne<{ count: number }>(
+      "SELECT COUNT(*) as count FROM orders",
+    )!.count;
 
-    const pendingCount = (
-      db
-        .prepare(
-          "SELECT COUNT(*) as count FROM orders WHERE status = 'pending'",
-        )
-        .get() as any
-    ).count;
+    const pendingCount = getOne<{ count: number }>(
+      "SELECT COUNT(*) as count FROM orders WHERE status = 'pending'",
+    )!.count;
 
-    const supervisorApprovedCount = (
-      db
-        .prepare(
-          "SELECT COUNT(*) as count FROM orders WHERE status = 'supervisor_approved'",
-        )
-        .get() as any
-    ).count;
+    const supervisorApprovedCount = getOne<{ count: number }>(
+      "SELECT COUNT(*) as count FROM orders WHERE status = 'supervisor_approved'",
+    )!.count;
 
-    const calidaApprovedCount = (
-      db
-        .prepare(
-          "SELECT COUNT(*) as count FROM orders WHERE status = 'calidda_approved'",
-        )
-        .get() as any
-    ).count;
+    const calidaApprovedCount = getOne<{ count: number }>(
+      "SELECT COUNT(*) as count FROM orders WHERE status = 'calidda_approved'",
+    )!.count;
 
-    const deliveredCount = (
-      db
-        .prepare(
-          "SELECT COUNT(*) as count FROM orders WHERE status = 'delivered'",
-        )
-        .get() as any
-    ).count;
+    const deliveredCount = getOne<{ count: number }>(
+      "SELECT COUNT(*) as count FROM orders WHERE status = 'delivered'",
+    )!.count;
 
-    const rejectedCount = (
-      db
-        .prepare(
-          "SELECT COUNT(*) as count FROM orders WHERE status LIKE '%rejected%'",
-        )
-        .get() as any
-    ).count;
+    const rejectedCount = getOne<{ count: number }>(
+      "SELECT COUNT(*) as count FROM orders WHERE status LIKE '%rejected%'",
+    )!.count;
 
-    const totalRevenue = (
-      db
-        .prepare(
-          "SELECT COALESCE(SUM(total_amount), 0) as revenue FROM orders WHERE status = 'delivered'",
-        )
-        .get() as any
-    ).revenue;
+    const totalRevenue = getOne<{ revenue: number }>(
+      "SELECT COALESCE(SUM(total_amount), 0) as revenue FROM orders WHERE status = 'delivered'",
+    )!.revenue;
 
-    const revenueThisMonth = (
-      db
-        .prepare(
-          "SELECT COALESCE(SUM(total_amount), 0) as revenue FROM orders WHERE status = 'delivered' AND created_at >= ?",
-        )
-        .get(thirtyDaysAgo) as any
-    ).revenue;
+    const revenueThisMonth = getOne<{ revenue: number }>(
+      "SELECT COALESCE(SUM(total_amount), 0) as revenue FROM orders WHERE status = 'delivered' AND created_at >= ?",
+      [thirtyDaysAgo],
+    )!.revenue;
 
     const avgOrderValue =
       deliveredCount > 0 ? totalRevenue / deliveredCount : 0;
