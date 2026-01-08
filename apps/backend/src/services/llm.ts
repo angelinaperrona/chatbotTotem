@@ -1,5 +1,14 @@
 import OpenAI from "openai";
 import process from "node:process";
+import {
+  buildIsQuestionPrompt,
+  buildExtractCategoryPrompt,
+  buildShouldEscalatePrompt,
+  buildAnswerQuestionPrompt,
+  buildSuggestAlternativePrompt,
+  buildHandleBacklogPrompt,
+  getCategoryMetadata,
+} from "@totem/core";
 
 const client = new OpenAI({
   apiKey: process.env.GEMINI_API_KEY,
@@ -8,104 +17,61 @@ const client = new OpenAI({
 
 const MODEL = "gemini-2.5-flash-lite";
 
-const SALES_CONTEXT = `Eres un asesor de ventas amigable de Totem, aliado de Calidda en Perú.
-
-PRODUCTOS: Electrodomésticos (smartphones, cocinas, refrigeradoras, laptops, TVs, termas)
-FINANCIAMIENTO: Cuotas mensuales a través del recibo de Calidda (sin intereses adicionales visibles al cliente)
-ZONAS: Lima Metropolitana y Callao
-PROCESO: 1) Verificamos elegibilidad 2) Mostramos productos 3) Asesor llama para finalizar compra
-
-PUEDES RESPONDER:
-- Cómo funciona el financiamiento (cuotas en recibo Calidda)
-- Qué productos vendemos
-- Zonas de cobertura
-- Proceso general de compra
-- Preguntas sobre categorías de productos
-NO PUEDES (escalar a humano):
-- Montos exactos de cuotas
-- Tasas de interés específicas
-- Promesas de aprobación
-- Modificar políticas
-- Quejas o reclamos
-
-TONO: Natural, conversacional, como un amigo que ayuda. NO uses emojis excesivos. NO suenes robótico.
-FORMATO: Respuestas cortas (2-3 líneas máximo). Siempre cierra preguntando qué producto le interesa.`;
-
-export async function classifyIntent(
-  message: string,
-): Promise<"yes" | "no" | "question" | "product_selection" | "unclear"> {
+export async function isQuestion(message: string): Promise<boolean> {
   try {
     const completion = await client.chat.completions.create({
       model: MODEL,
       messages: [
-        {
-          role: "system",
-          content: `Clasifica la intención del mensaje del usuario en español.
-
-REGLAS:
-- "yes": Afirmaciones simples (sí, claro, ok, vale, dale, por supuesto, afirmativo, correcto, sep)
-- "no": Negaciones (no, nada, no gracias, paso, negativo, para nada)
-- "question": SOLO preguntas reales (contiene ?, o palabras interrogativas: qué/cuánto/cómo/dónde/cuándo/por qué)
-- "product_selection": Menciona nombre/modelo de producto específico (Samsung, iPhone, Galaxy A26, Mabe, LG, etc.) O dice ordinal (primero, segundo, el 1, el 2)
-- "unclear": Expresiones genéricas de interés ("me interesan celulares", "quiero ver laptops"), o mensajes confusos
-
-IMPORTANTE: 
-- "Me interesa el Samsung Galaxy A26" → "product_selection" (producto específico)
-- "Me interesan celulares" → "unclear" (categoría genérica)
-- "El primero" o "el segundo" → "product_selection" (selección por posición)
-
-Responde SOLO con JSON: {"intent": "yes"|"no"|"question"|"product_selection"|"unclear"}`,
-        },
+        { role: "system", content: buildIsQuestionPrompt() },
         { role: "user", content: message },
       ],
       response_format: { type: "json_object" },
-      temperature: 0.3,
+      temperature: 0.2,
     });
     const choice = completion.choices[0];
     const content = choice?.message.content;
     const res = JSON.parse(content || "{}");
-    return res.intent || "unclear";
-  } catch {
-    return "unclear";
+    return res.isQuestion === true;
+  } catch (e) {
+    console.error("[isQuestion error]", e);
+    return false;
   }
 }
 
-export async function extractEntity(
+export async function shouldEscalate(message: string): Promise<boolean> {
+  try {
+    const completion = await client.chat.completions.create({
+      model: MODEL,
+      messages: [
+        { role: "system", content: buildShouldEscalatePrompt() },
+        { role: "user", content: message },
+      ],
+      response_format: { type: "json_object" },
+      temperature: 0.2,
+    });
+    const choice = completion.choices[0];
+    const content = choice?.message.content;
+    const res = JSON.parse(content || "{}");
+    return res.shouldEscalate === true;
+  } catch (e) {
+    console.error("[shouldEscalate error]", e);
+    return false;
+  }
+}
+
+export async function extractCategory(
   message: string,
-  entity: string,
-  options?: { availableCategories?: string[] },
+  availableCategories: string[],
 ): Promise<string | null> {
   try {
-    // Build dynamic prompt based on entity type
-    let systemPrompt = `Extrae ${entity} del mensaje del usuario en español.`;
-
-    if (
-      entity === "product_category" &&
-      options?.availableCategories &&
-      options.availableCategories.length > 0
-    ) {
-      const categoryList = options.availableCategories
-        .map((c) => `- ${c}`)
-        .join("\n");
-      systemPrompt = `Extrae y normaliza la categoría de producto del mensaje del usuario.
-
-CATEGORÍAS DISPONIBLES:
-${categoryList}
-
-Identifica qué categoría menciona el usuario (puede usar nombres de marcas, términos coloquiales, etc.).
-Responde con la categoría exacta de la lista o null si no hay coincidencia.
-
-Responde SOLO con JSON: {"value": "categoria_exacta"} o {"value": null}`;
-    } else {
-      systemPrompt += `\n\nResponde SOLO con JSON: {"value": string|null}`;
-    }
+    const metadata = getCategoryMetadata(availableCategories);
 
     const completion = await client.chat.completions.create({
       model: MODEL,
       messages: [
         {
           role: "system",
-          content: systemPrompt,
+          content: buildExtractCategoryPrompt(metadata),
         },
         { role: "user", content: message },
       ],
@@ -115,7 +81,7 @@ Responde SOLO con JSON: {"value": "categoria_exacta"} o {"value": null}`;
     const choice = completion.choices[0];
     const content = choice?.message.content;
     const res = JSON.parse(content || "{}");
-    return res.value ? String(res.value) : null;
+    return res.category ?? null;
   } catch {
     return null;
   }
@@ -127,25 +93,16 @@ export async function answerQuestion(
     segment?: string;
     creditLine?: number;
     state?: string;
+    availableCategories?: string[];
   },
-): Promise<{ answer: string; requiresHuman: boolean }> {
+): Promise<string> {
   try {
     const completion = await client.chat.completions.create({
       model: MODEL,
       messages: [
         {
           role: "system",
-          content: `${SALES_CONTEXT}
-
-Contexto actual:
-- Segmento: ${context.segment || "no determinado"}
-- Línea de crédito: ${context.creditLine ? `S/ ${context.creditLine}` : "no determinada"}
-- Estado: ${context.state || "conversación inicial"}
-
-Responde la pregunta del cliente de forma natural y conversacional.
-Si la pregunta requiere información financiera específica que no puedes dar, indica requiresHuman: true.
-
-JSON: {"answer": "tu respuesta corta y natural", "requiresHuman": true|false}`,
+          content: buildAnswerQuestionPrompt(context),
         },
         { role: "user", content: message },
       ],
@@ -157,16 +114,9 @@ JSON: {"answer": "tu respuesta corta y natural", "requiresHuman": true|false}`,
     const content = choice?.message.content;
     const res = JSON.parse(content || "{}");
 
-    return {
-      answer:
-        res.answer || "Déjame conectarte con un asesor para responderte mejor.",
-      requiresHuman: res.requiresHuman || false,
-    };
+    return res.answer || "Déjame ayudarte con eso...";
   } catch {
-    return {
-      answer: "Déjame conectarte con un asesor para responderte mejor.",
-      requiresHuman: true,
-    };
+    return "Déjame ayudarte con eso...";
   }
 }
 
@@ -180,23 +130,10 @@ export async function suggestAlternative(
       messages: [
         {
           role: "system",
-          content: `${SALES_CONTEXT}
-
-El cliente pidió "${requestedCategory}" pero no tenemos disponibilidad.
-
-CATEGORÍAS DISPONIBLES:
-${availableCategories.map((c) => `- ${c}`).join("\n")}
-
-Sugiere una alternativa relevante de las categorías disponibles de forma natural y amigable.
-Si ninguna es relevante, ofrece ver todas las opciones.
-
-TONO: Natural, proactivo, como un amigo que quiere ayudar.
-FORMATO: Corto (1-2 líneas máximo). Reconoce lo que pidió, sugiere alternativa.
-
-Ejemplo 1: "No tenemos laptops ahora, pero nuestros celulares de alta gama podrían interesarte para trabajar. ¿Los vemos?"
-Ejemplo 2: "No hay cámaras en este momento, pero los celulares tienen cámaras excelentes. ¿Te muestro?"
-
-JSON: {"suggestion": "tu sugerencia natural"}`,
+          content: buildSuggestAlternativePrompt(
+            requestedCategory,
+            availableCategories,
+          ),
         },
         {
           role: "user",
@@ -230,27 +167,7 @@ export async function handleBacklogResponse(
       messages: [
         {
           role: "system",
-          content: `${SALES_CONTEXT}
-
-SITUACIÓN: El cliente te escribió hace ${ageMinutes} minutos pero estabas offline. Ahora acabas de recibir su(s) mensaje(s).
-
-MENSAJE(S) DEL CLIENTE:
-"${message}"
-
-TAREA: Genera UNA respuesta que:
-1. Reconozca brevemente la demora (natural, sin sobre-disculparse)
-2. Responda a su mensaje original de forma contextual
-3. Continúe la conversación naturalmente
-
-TONO: Amigable, profesional, humano. Como si fueras un asesor real que acaba de ver el mensaje.
-FORMATO: 2-3 líneas máximo. NO suenes robótico. NO uses emojis excesivos.
-
-EJEMPLOS:
-- Cliente: "Hola" (hace 30 min) → "¡Hola! Disculpa la demora. Somos Tótem, aliados de Calidda. ¿Eres titular de tu servicio Calidda?"
-- Cliente: "Me interesan celulares" (hace 45 min) → "¡Claro! Perdón por la espera. Tengo varios celulares disponibles. ¿Cuál es tu DNI para ver tu línea?"
-- Cliente: "Hola, quisiera una laptop" (hace 1 hora) → "¡Hola! Disculpa que recién te respondo. Ahorita no tengo laptops, pero tengo celulares de alta gama. ¿Te interesa?"
-
-JSON: {"response": "tu respuesta contextual"}`,
+          content: buildHandleBacklogPrompt(message, ageMinutes),
         },
         {
           role: "user",

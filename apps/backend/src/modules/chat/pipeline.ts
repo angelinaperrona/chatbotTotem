@@ -66,18 +66,31 @@ async function executeTransition(
   }
 
   if (state !== "INIT" && state !== "WAITING_PROVIDER") {
-    const intent = await LLM.classifyIntent(message);
+    const isQuestionResult = await LLM.isQuestion(message);
 
-    if (intent === "question") {
-      const questionResponse = await LLM.answerQuestion(message, {
-        segment: context.segment,
-        creditLine: context.creditLine,
-        state,
-      });
+    if (isQuestionResult) {
+      const shouldEscalate = await LLM.shouldEscalate(message);
 
-      context.llmDetectedQuestion = true;
-      context.llmGeneratedAnswer = questionResponse.answer;
-      context.llmRequiresHuman = questionResponse.requiresHuman;
+      if (shouldEscalate) {
+        context.llmDetectedQuestion = true;
+        context.llmRequiresHuman = true;
+      } else {
+        const availableCategories =
+          context.segment === "fnb"
+            ? BundleService.getAvailableCategories("fnb")
+            : BundleService.getAvailableCategories("gaso");
+
+        const answer = await LLM.answerQuestion(message, {
+          segment: context.segment,
+          creditLine: context.creditLine,
+          state,
+          availableCategories,
+        });
+
+        context.llmDetectedQuestion = true;
+        context.llmGeneratedAnswer = answer;
+        context.llmRequiresHuman = false;
+      }
     }
   }
 
@@ -93,9 +106,7 @@ async function executeTransition(
           ? BundleService.getAvailableCategories("fnb")
           : BundleService.getAvailableCategories("gaso");
 
-      const category = await LLM.extractEntity(message, "product_category", {
-        availableCategories,
-      });
+      const category = await LLM.extractCategory(message, availableCategories);
 
       if (category) {
         context.extractedCategory = category;
