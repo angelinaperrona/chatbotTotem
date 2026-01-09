@@ -4,6 +4,10 @@ import { cors } from "hono/cors";
 import process from "node:process";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import {
+  startAggregatorWorker,
+  stopAggregatorWorker,
+} from "./conversation/aggregator-worker.ts";
 
 function getFrontendUrl(): string {
   const tunnelFile = resolve(import.meta.dir, "../../../.cloudflare-url");
@@ -23,7 +27,6 @@ import { db } from "./db/index.ts";
 import { initializeDatabase } from "./db/init.ts";
 import { seedDatabase } from "./db/seed.ts";
 import bcrypt from "bcryptjs";
-import { startProcessor } from "./modules/chat/processor.ts";
 
 import {
   generateSessionToken,
@@ -58,8 +61,8 @@ const app = new Hono();
 initializeDatabase(db);
 seedDatabase(db);
 
-// Start message processor
-startProcessor();
+// Start message aggregator worker
+startAggregatorWorker();
 
 // Start periodic timeout check (every minute)
 setInterval(async () => {
@@ -76,7 +79,6 @@ app.use(
   }),
 );
 
-// Serve static files
 app.use(
   "/static/*",
   serveStatic({
@@ -85,7 +87,6 @@ app.use(
   }),
 );
 
-// Public routes
 app.get("/health", async (c) => {
   const providers = getAllStatus();
   const notifier = await checkNotifierHealth();
@@ -308,5 +309,19 @@ app.get("/api/providers/:dni", requireAuth, async (c) => {
 app.onError(errorHandler);
 
 const port = parseInt(process.env.PORT || "3000", 10);
+
+process.on("SIGINT", async () => {
+  console.log("\nShutting down gracefully...");
+  await stopAggregatorWorker();
+  console.log("Shutdown complete");
+  process.exit(0);
+});
+
+process.on("SIGTERM", async () => {
+  console.log("\nShutting down gracefully...");
+  await stopAggregatorWorker();
+  console.log("Shutdown complete");
+  process.exit(0);
+});
 
 export default { port, fetch: app.fetch };

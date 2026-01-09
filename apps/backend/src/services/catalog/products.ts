@@ -79,4 +79,23 @@ export const ProductService = {
     );
     return rows.map((r) => r.category);
   },
+
+  /**
+   * Get active categories for a segment based on available bundles
+   * Only returns categories that have active, in-stock bundles
+   */
+  getActiveCategoriesBySegment: (segment: "fnb" | "gaso"): string[] => {
+    const rows = getAll<{ category: string }>(
+      `SELECT DISTINCT b.primary_category as category
+       FROM catalog_bundles b
+       JOIN catalog_periods p ON b.period_id = p.id
+       WHERE p.status = 'active'
+         AND b.is_active = 1
+         AND b.stock_status != 'out_of_stock'
+         AND b.segment = ?
+       ORDER BY b.primary_category`,
+      [segment],
+    );
+    return rows.map((r) => r.category);
+  },
 };

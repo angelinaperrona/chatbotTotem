@@ -18,7 +18,7 @@ type BundleSeed = {
   installments: InstallmentSchedule;
 };
 
-/** GASO bundles from January 2026 catalog (sample.txt) */
+/** GASO bundles from January 2026 catalog */
 export const BUNDLES_SEED: BundleSeed[] = [
   {
     image_id: "e4976160c1e346b8",

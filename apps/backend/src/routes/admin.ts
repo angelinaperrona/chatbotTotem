@@ -151,6 +151,52 @@ admin.patch("/users/:id/role", async (c) => {
   return c.json({ success: true, role });
 });
 
+// Get LLM errors
+admin.get("/llm-errors", (c) => {
+  const phoneFilter = c.req.query("phone");
+  const operationFilter = c.req.query("operation");
+  const limitStr = c.req.query("limit");
+  const limit = limitStr ? parseInt(limitStr, 10) : 100;
+
+  let query = "SELECT * FROM llm_errors";
+  const params: string[] = [];
+  const conditions: string[] = [];
+
+  if (phoneFilter) {
+    conditions.push("phone_number = ?");
+    params.push(phoneFilter);
+  }
+
+  if (operationFilter) {
+    conditions.push("operation = ?");
+    params.push(operationFilter);
+  }
+
+  if (conditions.length > 0) {
+    query += " WHERE " + conditions.join(" AND ");
+  }
+
+  query += " ORDER BY created_at DESC LIMIT ?";
+  params.push(String(limit));
+
+  const errors = db.prepare(query).all(...params) as {
+    id: string;
+    phone_number: string;
+    operation: string;
+    error_type: string;
+    state: string | null;
+    metadata: string | null;
+    created_at: number;
+  }[];
+
+  return c.json({
+    errors: errors.map((e) => ({
+      ...e,
+      metadata: e.metadata ? JSON.parse(e.metadata) : null,
+    })),
+  });
+});
+
 // Get audit trail
 admin.get("/audit", (c) => {
   const userIdFilter = c.req.query("user_id");

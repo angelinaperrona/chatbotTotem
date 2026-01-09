@@ -1,7 +1,9 @@
 import { Hono } from "hono";
 import process from "node:process";
-import { enqueueMessage } from "../modules/chat/queue.ts";
 import { WhatsAppService } from "../services/whatsapp/index.ts";
+import { isMaintenanceMode } from "../modules/settings/system.ts";
+import { holdMessage } from "../conversation/held-messages.ts";
+import { storeIncomingMessage } from "../conversation/message-inbox.ts";
 
 const webhook = new Hono();
 
@@ -41,11 +43,9 @@ webhook.post("/", async (c) => {
 
     const text = message.text.body;
     const messageId = message.id;
-    const timestamp = message.timestamp || Math.floor(Date.now() / 1000);
-
-    WhatsAppService.markAsReadAndShowTyping(messageId).catch((err) =>
-      console.error("Failed to mark as read:", err),
-    );
+    // WhatsApp timestamp is in seconds, convert to milliseconds
+    const timestamp =
+      (message.timestamp || Math.floor(Date.now() / 1000)) * 1000;
 
     WhatsAppService.logMessage(
       phoneNumber,
@@ -55,9 +55,15 @@ webhook.post("/", async (c) => {
       "received",
     );
 
-    enqueueMessage(phoneNumber, text, timestamp, messageId);
+    // During maintenance, hold messages for later processing
+    if (isMaintenanceMode()) {
+      holdMessage(phoneNumber, text, messageId, timestamp);
+      return c.json({ status: "maintenance_held" });
+    }
 
-    return c.json({ status: "queued" });
+    storeIncomingMessage(phoneNumber, text, messageId, timestamp);
+
+    return c.json({ status: "received" });
   } catch (error) {
     console.error("Webhook error:", error);
     return c.json({ status: "error" }, 500);
