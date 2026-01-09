@@ -44,10 +44,15 @@ async function processQueue() {
       );
     } catch (error) {
       item.attempts++;
+      const errorDetails =
+        error instanceof Error
+          ? { message: error.message, stack: error.stack }
+          : { raw: String(error) };
+
       if (item.attempts < MAX_RETRIES) {
         appLogger.warn(
           {
-            error,
+            ...errorDetails,
             channel: item.channel,
             attempt: item.attempts,
             maxRetries: MAX_RETRIES,
@@ -59,7 +64,7 @@ async function processQueue() {
       } else {
         appLogger.error(
           {
-            error,
+            ...errorDetails,
             channel: item.channel,
             phoneNumber: item.phoneNumber,
             message: item.message,
