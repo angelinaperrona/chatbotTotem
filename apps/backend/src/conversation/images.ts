@@ -1,6 +1,6 @@
 import type { Segment } from "@totem/types";
-import { BundleService } from "../services/catalog/index.ts";
-import { WhatsAppService } from "../services/whatsapp/index.ts";
+import { BundleService } from "../domains/catalog/index.ts";
+import { WhatsAppService } from "../adapters/whatsapp/index.ts";
 
 export type SendBundleParams = {
   phoneNumber: string;

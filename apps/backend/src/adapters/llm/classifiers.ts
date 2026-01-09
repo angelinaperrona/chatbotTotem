@@ -9,7 +9,7 @@ import {
 } from "@totem/core";
 import { client, MODEL } from "./client.ts";
 import { classifyLLMError } from "./types.ts";
-import { logLLMError } from "../../services/llm-errors.ts";
+import { logLLMError } from "./error-logger.ts";
 
 export async function isQuestion(
   message: string,

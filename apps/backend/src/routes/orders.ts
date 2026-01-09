@@ -1,6 +1,6 @@
 import { Hono } from "hono";
-import * as ordersModule from "../modules/sales/orders.ts";
-import { logAction } from "../services/audit";
+import * as ordersModule from "../domains/orders/orders.ts";
+import { logAction } from "../platform/audit/logger";
 
 const app = new Hono();
 

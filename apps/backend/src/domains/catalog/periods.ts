@@ -1,5 +1,5 @@
-import { db } from "../db/index.ts";
-import { getOne, getAll } from "../db/query.ts";
+import { db } from "../../db/index.ts";
+import { getOne, getAll } from "../../db/query.ts";
 import type { CatalogPeriod, PeriodStatus } from "@totem/types";
 
 type CreatePeriodData = {

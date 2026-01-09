@@ -1,4 +1,4 @@
-import { db } from "../db/index.ts";
+import { db } from "../../db/index.ts";
 import type { ProviderCheckResult } from "@totem/types";
 
 type TestPersona = {

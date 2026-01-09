@@ -1,6 +1,6 @@
 import { db } from "../../db/index.ts";
 import type { Order } from "@totem/types";
-import { notifyTeam } from "../../services/notifier.ts";
+import { notifyTeam } from "../../adapters/notifier/client.ts";
 import { generateOrderNumber } from "./utils.ts";
 import { getOrderById } from "./read.ts";
 import type { CreateOrderInput } from "./types.ts";

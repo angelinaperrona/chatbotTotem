@@ -1,6 +1,6 @@
 import { db } from "../../db/index.ts";
-import { logAction } from "../../services/audit.ts";
-import { notifyTeam } from "../../services/notifier.ts";
+import { logAction } from "../../platform/audit/logger.ts";
+import { notifyTeam } from "../../adapters/notifier/client.ts";
 import { resolve, join } from "node:path";
 import { mkdir, writeFile } from "node:fs/promises";
 

@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import process from "node:process";
-import { WhatsAppService } from "../services/whatsapp/index.ts";
-import { isMaintenanceMode } from "../modules/settings/system.ts";
+import { WhatsAppService } from "../adapters/whatsapp/index.ts";
+import { isMaintenanceMode } from "../domains/settings/system.ts";
 import { holdMessage } from "../conversation/held-messages.ts";
 import { storeIncomingMessage } from "../conversation/message-inbox.ts";
 

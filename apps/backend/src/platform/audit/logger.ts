@@ -1,4 +1,4 @@
-import { db } from "../db/index.ts";
+import { db } from "../../db/index.ts";
 import type { AuditLog } from "@totem/types";
 
 export function logAction(

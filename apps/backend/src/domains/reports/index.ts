@@ -1,5 +1,5 @@
-import { db } from "../db/index.ts";
-import { getAll } from "../db/query.ts";
+import { db } from "../../db/index.ts";
+import { getAll } from "../../db/query.ts";
 import * as XLSX from "xlsx";
 
 type ActivityReportParams = {

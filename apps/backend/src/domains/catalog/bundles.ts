@@ -2,7 +2,7 @@ import { db } from "../../db/index.ts";
 import { getOne, getAll } from "../../db/query.ts";
 import type { SQLQueryBindings } from "bun:sqlite";
 import type { Bundle } from "@totem/types";
-import { imageStorage } from "../image-storage.ts";
+import { imageStorage } from "../../adapters/storage/images.ts";
 
 type BundleFilters = {
   periodId?: string;

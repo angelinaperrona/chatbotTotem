@@ -3,7 +3,7 @@ import { getCookie } from "hono/cookie";
 import {
   validateSessionToken,
   deleteSessionTokenCookie,
-} from "../services/auth.ts";
+} from "../platform/auth/session.ts";
 
 export async function requireAuth(c: Context, next: Next) {
   const token = getCookie(c, "session");

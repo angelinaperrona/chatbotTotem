@@ -3,12 +3,12 @@
  */
 
 import { conversation } from "@totem/core";
-import { checkEligibilityWithFallback } from "../modules/eligibility/orchestrator.ts";
+import { checkEligibilityWithFallback } from "../domains/eligibility/orchestrator.ts";
 
 type EnrichmentRequest = conversation.EnrichmentRequest;
 type EnrichmentResult = conversation.EnrichmentResult;
-import * as LLM from "../modules/llm/index.ts";
-import { getActiveCategoriesBySegment } from "../services/catalog/index.ts";
+import * as LLM from "../adapters/llm/index.ts";
+import { getActiveCategoriesBySegment } from "../domains/catalog/index.ts";
 
 export async function executeEnrichment(
   request: EnrichmentRequest,

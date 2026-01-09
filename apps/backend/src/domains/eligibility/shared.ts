@@ -1,4 +1,4 @@
-import { PersonasService } from "../../services/personas.ts";
+import { PersonasService } from "../../domains/personas/index.ts";
 import { getOne } from "../../db/query.ts";
 
 type ConversationRow = {

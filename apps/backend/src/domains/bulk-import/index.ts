@@ -1,6 +1,6 @@
-import { BundleService } from "./catalog/index.ts";
-import { PeriodService } from "./periods.ts";
-import { db } from "../db/index.ts";
+import { BundleService } from "../catalog/index.ts";
+import { PeriodService } from "../catalog/periods.ts";
+import { db } from "../../db/index.ts";
 
 /**
  * CSV Format for Bundles (GASO & FnB):

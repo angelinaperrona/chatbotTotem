@@ -1,8 +1,8 @@
 import { getOne, getAll } from "../../db/query.ts";
 import type { Conversation } from "@totem/types";
-import { WhatsAppService } from "../../services/whatsapp/index.ts";
-import { getEventsByPhone } from "../../services/analytics.ts";
-import { logAction } from "../../services/audit.ts";
+import { WhatsAppService } from "../../adapters/whatsapp/index.ts";
+import { getEventsByPhone } from "../../domains/analytics/index.ts";
+import { logAction } from "../../platform/audit/logger.ts";
 import type { ReplayData, ReplayMetadata } from "@totem/types";
 
 export type Role = "admin" | "developer" | "sales_agent";

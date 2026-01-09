@@ -1,7 +1,7 @@
 import type { ProviderCheckResult } from "@totem/types";
 import { checkFNB } from "./fnb.ts";
 import { checkGASO } from "./gaso.ts";
-import { notifyTeam } from "../../services/notifier.ts";
+import { notifyTeam } from "../../adapters/notifier/client.ts";
 
 type ProviderResult = {
   success: boolean;

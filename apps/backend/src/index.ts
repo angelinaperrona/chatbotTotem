@@ -34,7 +34,7 @@ import {
   invalidateSession,
   setSessionTokenCookie,
   deleteSessionTokenCookie,
-} from "./services/auth.ts";
+} from "./platform/auth/session.ts";
 
 import { requireAuth, requireRole } from "./middleware/auth.ts";
 import { errorHandler } from "./middleware/error.ts";
@@ -49,11 +49,11 @@ import catalog from "./routes/catalog.ts";
 import periods from "./routes/periods.ts";
 import orders from "./routes/orders.ts";
 
-import { getAllStatus } from "./services/providers/health.ts";
-import { ReportService } from "./services/reports.ts";
-import { checkNotifierHealth } from "./services/notifier.ts";
-import { checkAndReassignTimeouts } from "./modules/conversation/assignment.ts";
-import { checkEligibilityWithFallback } from "./modules/eligibility/orchestrator.ts";
+import { getAllStatus } from "./adapters/providers/health.ts";
+import { ReportService } from "./domains/reports/index.ts";
+import { checkNotifierHealth } from "./adapters/notifier/client.ts";
+import { checkAndReassignTimeouts } from "./domains/conversations/assignment.ts";
+import { checkEligibilityWithFallback } from "./domains/eligibility/orchestrator.ts";
 
 const app = new Hono();
 

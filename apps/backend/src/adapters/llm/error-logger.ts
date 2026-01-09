@@ -1,5 +1,5 @@
-import { db } from "../db/index.ts";
-import type { LLMError } from "../modules/llm/types.ts";
+import { db } from "../../db/index.ts";
+import type { LLMError } from "./types.ts";
 
 export type LLMErrorLog = {
   id: string;

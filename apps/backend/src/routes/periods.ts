@@ -1,6 +1,6 @@
 import { Hono } from "hono";
-import { PeriodService } from "../services/periods.ts";
-import { logAction } from "../services/audit.ts";
+import { PeriodService } from "../domains/catalog/periods.ts";
+import { logAction } from "../platform/audit/logger.ts";
 import { requireRole } from "../middleware/auth.ts";
 
 const periods = new Hono();

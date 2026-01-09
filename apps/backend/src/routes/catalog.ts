@@ -1,8 +1,8 @@
 import { Hono } from "hono";
-import { ProductService, BundleService } from "../services/catalog/index.ts";
-import { PeriodService } from "../services/periods.ts";
-import { imageStorage } from "../services/image-storage.ts";
-import { logAction } from "../services/audit.ts";
+import { ProductService, BundleService } from "../domains/catalog/index.ts";
+import { PeriodService } from "../domains/catalog/periods.ts";
+import { imageStorage } from "../adapters/storage/images.ts";
+import { logAction } from "../platform/audit/logger.ts";
 import { requireRole } from "../middleware/auth.ts";
 
 const catalog = new Hono();

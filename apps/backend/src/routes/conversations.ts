@@ -1,9 +1,9 @@
 import { Hono } from "hono";
-import * as ConversationRead from "../modules/conversation/read.ts";
-import { isValidRole } from "../modules/conversation/read.ts";
-import * as ConversationWrite from "../modules/conversation/write.ts";
-import * as ConversationMedia from "../modules/conversation/media.ts";
-import { assignNextAgent } from "../modules/conversation/assignment.ts";
+import * as ConversationRead from "../domains/conversations/read.ts";
+import { isValidRole } from "../domains/conversations/read.ts";
+import * as ConversationWrite from "../domains/conversations/write.ts";
+import * as ConversationMedia from "../domains/conversations/media.ts";
+import { assignNextAgent } from "../domains/conversations/assignment.ts";
 
 const conversations = new Hono();
 

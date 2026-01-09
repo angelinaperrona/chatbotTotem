@@ -19,8 +19,8 @@ import {
 } from "@totem/core";
 import { client, MODEL } from "./client.ts";
 import { classifyLLMError } from "./types.ts";
-import { logLLMError } from "../../services/llm-errors.ts";
-import { BundleService } from "../../services/catalog/bundles.ts";
+import { logLLMError } from "./error-logger.ts";
+import { BundleService } from "../../domains/catalog/bundles.ts";
 import { CATEGORIES } from "@totem/types";
 
 type AnswerContext = {

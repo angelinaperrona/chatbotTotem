@@ -15,10 +15,10 @@ import {
   isSessionTimedOut,
   resetSession,
 } from "./store.ts";
-import { WhatsAppService } from "../services/whatsapp/index.ts";
-import { notifyTeam } from "../services/notifier.ts";
+import { WhatsAppService } from "../adapters/whatsapp/index.ts";
+import { notifyTeam } from "../adapters/notifier/client.ts";
 import { sendBundleImages } from "./images.ts";
-import { trackEvent } from "../services/analytics.ts";
+import { trackEvent } from "../domains/analytics/index.ts";
 
 const RESPONSE_DELAY_MS = parseInt(
   process.env.BOT_RESPONSE_DELAY_MS || "4000",

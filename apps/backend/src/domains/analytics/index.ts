@@ -1,4 +1,4 @@
-import { db } from "../db/index.ts";
+import { db } from "../../db/index.ts";
 import type { AnalyticsEvent } from "@totem/types";
 
 export function trackEvent(

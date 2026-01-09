@@ -1,7 +1,7 @@
 import { db } from "../../db/index.ts";
 import { getOne } from "../../db/query.ts";
-import { WhatsAppService } from "../../services/whatsapp/index.ts";
-import { logAction } from "../../services/audit.ts";
+import { WhatsAppService } from "../../adapters/whatsapp/index.ts";
+import { logAction } from "../../platform/audit/logger.ts";
 
 const ALLOWED_AGENT_DATA_FIELDS = [
   "agent_notes",

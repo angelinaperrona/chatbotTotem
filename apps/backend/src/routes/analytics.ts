@@ -1,7 +1,7 @@
 // Analytics routes
 
 import { Hono } from "hono";
-import { getFunnelStats, getRecentEvents } from "../services/analytics.ts";
+import { getFunnelStats, getRecentEvents } from "../domains/analytics/index.ts";
 
 const analytics = new Hono();
 

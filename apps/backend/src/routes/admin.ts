@@ -1,8 +1,8 @@
 import { Hono } from "hono";
 import { db } from "../db/index.ts";
 import bcrypt from "bcryptjs";
-import { logAction, getAuditTrail } from "../services/audit.ts";
-// import { invalidateSession } from "../services/auth.ts";
+import { logAction, getAuditTrail } from "../platform/audit/logger.ts";
+// import { invalidateSession } from "../platform/auth/session.ts";
 import type { User } from "@totem/types";
 
 const admin = new Hono();

@@ -1,7 +1,7 @@
 import type { ProviderCheckResult } from "@totem/types";
-import { PowerBIClient } from "../../services/providers/powerbi-client.ts";
-import { isAvailable, markBlocked } from "../../services/providers/health.ts";
-import { PersonasService } from "../../services/personas.ts";
+import { PowerBIClient } from "../../adapters/providers/powerbi-client.ts";
+import { isAvailable, markBlocked } from "../../adapters/providers/health.ts";
+import { PersonasService } from "../../domains/personas/index.ts";
 import { isProviderForcedDown } from "../settings/system.ts";
 import { getSimulationPersona } from "./shared.ts";
 

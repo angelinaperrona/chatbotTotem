@@ -1,6 +1,6 @@
 import { Hono } from "hono";
-import { WhatsAppService } from "../services/whatsapp/index.ts";
-import { PersonasService } from "../services/personas.ts";
+import { WhatsAppService } from "../adapters/whatsapp/index.ts";
+import { PersonasService } from "../domains/personas/index.ts";
 import {
   getOrCreateConversation,
   resetSession,
