@@ -1,14 +1,16 @@
-import { conversation } from "@totem/core";
+import type {
+  ConversationPhase,
+  ConversationMetadata,
+  TransitionResult,
+  EnrichmentResult,
+  NotifyCommand,
+  ImageCommand,
+  TrackEvent,
+} from "@totem/core";
+import { transition } from "@totem/core";
 import { withLock } from "./locks.ts";
 import { executeEnrichment } from "./enrichment.ts";
 
-type ConversationPhase = conversation.ConversationPhase;
-type ConversationMetadata = conversation.ConversationMetadata;
-type TransitionResult = conversation.TransitionResult;
-type EnrichmentResult = conversation.EnrichmentResult;
-type NotifyCommand = conversation.NotifyCommand;
-type ImageCommand = conversation.ImageCommand;
-type TrackEvent = conversation.TrackEvent;
 import {
   getOrCreateConversation,
   updateConversation,
@@ -99,7 +101,7 @@ async function runEnrichmentLoop(
   while (iterations < MAX_ENRICHMENT_LOOPS) {
     iterations++;
 
-    const result = conversation.transition({
+    const result = transition({
       phase: currentPhase,
       message,
       metadata,

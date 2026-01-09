@@ -2,11 +2,9 @@
  * Executes async operations requested by the state machine.
  */
 
-import { conversation } from "@totem/core";
+import type { EnrichmentRequest, EnrichmentResult } from "@totem/core";
 import { checkEligibilityWithFallback } from "../domains/eligibility/orchestrator.ts";
 
-type EnrichmentRequest = conversation.EnrichmentRequest;
-type EnrichmentResult = conversation.EnrichmentResult;
 import * as LLM from "../adapters/llm/index.ts";
 import { getActiveCategoriesBySegment } from "../domains/catalog/index.ts";
 

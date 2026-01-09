@@ -6,10 +6,8 @@
 import { db } from "../db/index.ts";
 import { getOne } from "../db/query.ts";
 import type { Conversation } from "@totem/types";
-import { conversation } from "@totem/core";
+import type { ConversationPhase, ConversationMetadata } from "@totem/core";
 
-type ConversationPhase = conversation.ConversationPhase;
-type ConversationMetadata = conversation.ConversationMetadata;
 type ConversationData = {
   phoneNumber: string;
   phase: ConversationPhase;

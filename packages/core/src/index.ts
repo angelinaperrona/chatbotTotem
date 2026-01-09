@@ -13,4 +13,4 @@ export * from "./messaging/tone-detector.ts";
 export * from "./matching/category-matcher.ts";
 
 // Conversation architecture
-export * as conversation from "./conversation/index.ts";
+export * from "./conversation/index.ts";
