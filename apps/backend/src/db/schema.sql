@@ -121,6 +121,15 @@ CREATE TABLE IF NOT EXISTS message_inbox (
     processed_at INTEGER
 );
 
+CREATE TABLE IF NOT EXISTS held_messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    phone_number TEXT NOT NULL,
+    message_text TEXT NOT NULL,
+    message_id TEXT UNIQUE NOT NULL,
+    whatsapp_timestamp INTEGER NOT NULL,
+    created_at INTEGER NOT NULL DEFAULT (unixepoch('now', 'subsec') * 1000)
+);
+
 CREATE TABLE IF NOT EXISTS audit_log (
     id TEXT PRIMARY KEY,
     user_id TEXT NOT NULL REFERENCES users(id),
@@ -198,6 +207,7 @@ CREATE INDEX IF NOT EXISTS idx_orders_conversation ON orders(conversation_phone)
 CREATE INDEX IF NOT EXISTS idx_orders_agent ON orders(assigned_agent);
 CREATE INDEX IF NOT EXISTS idx_conversations_assigned ON conversations(assigned_agent);
 CREATE INDEX IF NOT EXISTS idx_users_available ON users(role, is_available, is_active);
+CREATE INDEX IF NOT EXISTS idx_held_messages_phone ON held_messages(phone_number, created_at ASC);
 CREATE INDEX IF NOT EXISTS idx_message_inbox_pending ON message_inbox(status, phone_number, created_at);
 CREATE INDEX IF NOT EXISTS idx_llm_errors_phone ON llm_error_log(phone_number, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_llm_errors_type ON llm_error_log(error_type, created_at DESC);

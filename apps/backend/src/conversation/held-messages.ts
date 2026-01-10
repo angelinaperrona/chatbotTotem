@@ -1,13 +1,13 @@
 import { db } from "../db/index.ts";
 import { getAll } from "../db/query.ts";
 
-type HeldMessage = {
-  id: number;
+type AggregatedHeldGroup = {
   phone_number: string;
-  message_text: string;
-  message_id: string;
-  whatsapp_timestamp: number;
-  created_at: string;
+  message_ids: string;
+  aggregated_text: string;
+  oldest_timestamp: number;
+  latest_message_id: string;
+  message_count: number;
 };
 
 /**
@@ -30,11 +30,20 @@ export function holdMessage(
 }
 
 /**
- * Get all held messages, oldest first
+ * Get held messages aggregated by user (like aggregator-worker does)
  */
-export function getHeldMessages(): HeldMessage[] {
-  return getAll<HeldMessage>(
-    `SELECT * FROM held_messages ORDER BY created_at ASC`,
+export function getAggregatedHeldMessages(): AggregatedHeldGroup[] {
+  return getAll<AggregatedHeldGroup>(
+    `SELECT 
+       phone_number,
+       GROUP_CONCAT(id) as message_ids,
+       GROUP_CONCAT(message_text, ' ') as aggregated_text,
+       MIN(whatsapp_timestamp) as oldest_timestamp,
+       MAX(message_id) as latest_message_id,
+       COUNT(*) as message_count
+     FROM held_messages
+     GROUP BY phone_number
+     ORDER BY MIN(created_at) ASC`,
   );
 }
 

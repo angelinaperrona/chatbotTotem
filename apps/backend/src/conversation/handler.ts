@@ -21,7 +21,7 @@ import { sendBundleImages } from "./images.ts";
 import { trackEvent } from "../domains/analytics/index.ts";
 
 const RESPONSE_DELAY_MS = parseInt(
-  process.env.BOT_RESPONSE_DELAY_MS || "4000",
+  process.env.BOT_RESPONSE_DELAY_MS || "3000",
   10,
 );
 const BACKLOG_THRESHOLD_MS = 10 * 60 * 1000; // 10 minutes

@@ -11,10 +11,14 @@ let initialSettings = $state<Record<string, string>>({});
 let loading = $state(true);
 let saving = $state(false);
 let showConfirmModal = $state(false);
+let heldMessagesCount = $state(0);
+let processingHeld = $state(false);
 
 let hasChanges = $derived(
   JSON.stringify(settings) !== JSON.stringify(initialSettings),
 );
+
+let isMaintenanceMode = $derived(settings["maintenance_mode"] === "true");
 
 async function loadSettings() {
   loading = true;
@@ -29,6 +33,37 @@ async function loadSettings() {
   }
 }
 
+async function checkHeldMessagesStatus() {
+  try {
+    const data = await fetchApi<{ pendingCount: number }>("/api/admin/held-messages-status");
+    heldMessagesCount = data.pendingCount;
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+async function processHeldMessages() {
+  processingHeld = true;
+  try {
+    const result = await fetchApi<{
+      success: boolean;
+      message: string;
+      stats: { usersProcessed: number; messagesProcessed: number; errors: number };
+    }>("/api/admin/process-held-messages", {
+      method: "POST",
+    });
+    
+    toast.success(result.message);
+    
+    // Update count after success
+    await checkHeldMessagesStatus();
+  } catch (e) {
+    toast.error("Error al procesar mensajes retenidos");
+  } finally {
+    processingHeld = false;
+  }
+}
+
 async function handleSave(e?: Event) {
   e?.preventDefault();
   showConfirmModal = true;
@@ -38,13 +73,23 @@ async function confirmSave() {
   saving = true;
   showConfirmModal = false;
   try {
+    // Capture old state before update
+    const wasInMaintenance = initialSettings["maintenance_mode"] === "true";
+    const isExitingMaintenance = wasInMaintenance && settings["maintenance_mode"] === "false";
+    
     await fetchApi("/api/admin/settings", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(settings),
     });
+    
     initialSettings = { ...settings };
     toast.success("Configuración actualizada");
+    
+    // Check for held messages if exiting maintenance mode
+    if (isExitingMaintenance) {
+      await checkHeldMessagesStatus();
+    }
   } catch (e) {
     toast.error("Error al guardar configuración");
   } finally {
@@ -52,7 +97,10 @@ async function confirmSave() {
   }
 }
 
-onMount(loadSettings);
+onMount(() => {
+  loadSettings();
+  checkHeldMessagesStatus();
+});
 </script>
 
 <div class="space-y-6">
@@ -88,6 +136,44 @@ onMount(loadSettings);
              </div>
         {/if}
     </SectionShell>
+
+    <!-- Held messages status (shown when maintenance mode is off but messages pending) -->
+    {#if !loading && !isMaintenanceMode && heldMessagesCount > 0}
+    <SectionShell 
+        title="Mensajes retenidos" 
+        description="Mensajes recibidos durante el modo mantenimiento pendientes de procesamiento."
+    >
+        <div class="p-6">
+            <div class="border border-amber-100 bg-amber-50/30 p-4 rounded">
+                <div class="flex items-start gap-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-amber-600 shrink-0 mt-0.5">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="12" y1="8" x2="12" y2="12"/>
+                        <line x1="12" y1="16" x2="12.01" y2="16"/>
+                    </svg>
+                    <div class="flex-1">
+                        <div class="font-bold text-sm text-amber-900">
+                            {heldMessagesCount} {heldMessagesCount === 1 ? 'mensaje retenido' : 'mensajes retenidos'}
+                        </div>
+                        <p class="text-xs text-amber-700/80 mt-1 leading-relaxed">
+                            Estos mensajes fueron recibidos mientras el bot estaba en modo mantenimiento. 
+                            El sistema los agregará por usuario y procesará sus conversaciones automáticamente.
+                        </p>
+                        <div class="mt-3">
+                            <Button 
+                                size="sm"
+                                onclick={processHeldMessages}
+                                disabled={processingHeld}
+                            >
+                                {processingHeld ? 'Procesando...' : 'Procesar mensajes ahora'}
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </SectionShell>
+    {/if}
 
     <SectionShell 
         title="Integraciones" 

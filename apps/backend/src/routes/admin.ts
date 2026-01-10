@@ -2,7 +2,10 @@ import { Hono } from "hono";
 import { db } from "../db/index.ts";
 import bcrypt from "bcryptjs";
 import { logAction, getAuditTrail } from "../platform/audit/logger.ts";
-// import { invalidateSession } from "../platform/auth/session.ts";
+import {
+  processHeldMessages,
+  countHeldMessages,
+} from "../conversation/index.ts";
 import type { User } from "@totem/types";
 
 const admin = new Hono();
@@ -265,6 +268,43 @@ admin.post("/settings", async (c) => {
   logAction(user.id, "update_settings", "system", null, updates);
 
   return c.json({ success: true, updates });
+});
+
+// Process held messages from maintenance mode
+admin.post("/process-held-messages", async (c) => {
+  const user = c.get("user");
+  const pendingCount = countHeldMessages();
+
+  if (pendingCount === 0) {
+    return c.json({
+      success: true,
+      message: "No held messages to process",
+      stats: { usersProcessed: 0, messagesProcessed: 0, errors: 0 },
+    });
+  }
+
+  console.log(
+    `[Admin] ${user.username} triggered processing of ${pendingCount} held messages`,
+  );
+
+  const result = await processHeldMessages();
+
+  logAction(user.id, "process_held_messages", "system", null, result);
+
+  const userWord = result.usersProcessed === 1 ? "usuario" : "usuarios";
+  const messageWord = result.messagesProcessed === 1 ? "mensaje" : "mensajes";
+
+  return c.json({
+    success: true,
+    message: `Procesados ${result.messagesProcessed} ${messageWord} de ${result.usersProcessed} ${userWord}`,
+    stats: result,
+  });
+});
+
+// Get held messages status
+admin.get("/held-messages-status", (c) => {
+  const count = countHeldMessages();
+  return c.json({ pendingCount: count });
 });
 
 export default admin;
