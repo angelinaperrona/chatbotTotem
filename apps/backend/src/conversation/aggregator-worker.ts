@@ -6,7 +6,7 @@ import {
   countPending,
   countFailed,
 } from "./message-inbox.ts";
-import { handleMessage } from "./handler.ts";
+import { handleMessage } from "./handler/index.ts";
 
 // Time window for possible new messages before processing
 const QUIET_WINDOW_MS = 2000;

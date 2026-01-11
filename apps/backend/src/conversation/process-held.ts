@@ -2,7 +2,7 @@ import {
   clearHeldMessages,
   getAggregatedHeldMessages,
 } from "./held-messages.ts";
-import { handleMessage } from "./handler.ts";
+import { handleMessage } from "./handler/index.ts";
 
 /**
  * Process all held messages from maintenance mode

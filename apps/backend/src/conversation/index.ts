@@ -1,4 +1,4 @@
-export { handleMessage, type IncomingMessage } from "./handler.ts";
+export { handleMessage, type IncomingMessage } from "./handler/index.ts";
 export {
   getOrCreateConversation,
   updateConversation,
