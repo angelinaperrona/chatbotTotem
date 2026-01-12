@@ -5,7 +5,7 @@ import { createLogger } from "./logger.ts";
 
 const logger = createLogger("group-registry");
 
-const DATA_PATH = process.env.NOTIFIER_DATA_PATH || "./data/notifier";
+const DATA_PATH = process.env.NOTIFIER_DATA_PATH || "./data";
 const MAPPING_FILE = path.join(DATA_PATH, "group_mapping.json");
 
 const groupMapping = new Map<string, string>();

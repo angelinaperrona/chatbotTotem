@@ -1,7 +1,7 @@
 import { createRootLogger, type Logger } from "@totem/logger";
 import process from "node:process";
 
-const DATA_PATH = process.env.NOTIFIER_DATA_PATH || "./data/notifier";
+const DATA_PATH = process.env.NOTIFIER_DATA_PATH || "./data";
 
 const rootLogger = createRootLogger({
   name: "notifier",

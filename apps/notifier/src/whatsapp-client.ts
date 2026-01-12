@@ -6,7 +6,7 @@ import { setupMessageHandler } from "./message-handler.ts";
 import { createLogger } from "./logger.ts";
 
 const logger = createLogger("whatsapp");
-const DATA_PATH = process.env.NOTIFIER_DATA_PATH || "./data/notifier";
+const DATA_PATH = process.env.NOTIFIER_DATA_PATH || "./data";
 
 export let client: Client | null = null;
 
