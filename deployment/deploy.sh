@@ -17,6 +17,7 @@ source "$SCRIPT_DIR/lib/system.sh"
 source "$SCRIPT_DIR/lib/env.sh"
 source "$SCRIPT_DIR/lib/build.sh"
 source "$SCRIPT_DIR/lib/service-install.sh"
+source "$SCRIPT_DIR/lib/nginx.sh"
 
 deploy_as_system() {
 	local source_root="$1"
@@ -76,6 +77,9 @@ main() {
 
 	step "Installing services"
 	install_all_services "$deploy_user" "$deploy_home" "$project_root"
+
+	step "Configuring nginx"
+	setup_nginx
 
 	local ip=$(hostname -I | awk '{print $1}')
 	echo ""
