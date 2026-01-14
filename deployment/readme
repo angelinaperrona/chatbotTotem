@@ -1,5 +1,4 @@
-Deployment behavior is implemented by scripts under `deployment/`. This file
-documents invocation, runtime topology, and operational boundaries.
+This file documents invocation, runtime topology, and operational boundaries.
 
 Deployment is driven by "deployment/deploy.sh". The script installs required
 tooling, builds the frontend, and installs systemd services. It may be run with
