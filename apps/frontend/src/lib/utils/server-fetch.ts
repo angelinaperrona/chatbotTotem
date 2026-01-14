@@ -1,7 +1,9 @@
-const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:3000";
+import { getBackendUrl as getBackendUrlUtil } from "@totem/utils";
+
+const backendUrlBase = getBackendUrlUtil();
 
 export function getBackendUrl(path: string): string {
-  return `${BACKEND_URL}${path}`;
+  return `${backendUrlBase}${path}`;
 }
 
 export async function fetchBackend(

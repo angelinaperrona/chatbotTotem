@@ -1,6 +1,6 @@
 import { db } from "../../db/index.ts";
 import { createLogger } from "../../lib/logger.ts";
-import { getFrontendUrl } from "@totem/utils";
+import { getFrontendUrl, getNotifierUrl } from "@totem/utils";
 
 const logger = createLogger("assignment");
 
@@ -85,7 +85,7 @@ async function sendAssignmentNotification(
     `Accede aquí: ${frontendUrl}/dashboard/conversations/${clientPhone}\n\n` +
     `Tienes 5 minutos para aceptar esta asignación.`;
 
-  const notifierUrl = process.env.NOTIFIER_URL || "http://localhost:3001";
+  const notifierUrl = getNotifierUrl();
 
   try {
     await fetch(`${notifierUrl}/notify`, {

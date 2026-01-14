@@ -1,9 +1,9 @@
-import process from "node:process";
 import { createLogger } from "../../lib/logger.ts";
+import { getNotifierUrl } from "@totem/utils";
 
 const logger = createLogger("notifier");
 
-const NOTIFIER_URL = process.env.NOTIFIER_URL || "http://localhost:3001";
+const notifierUrl = getNotifierUrl();
 
 type NotifyRequest = {
   channel: "agent" | "dev" | "sales";
@@ -15,7 +15,7 @@ export async function notifyTeam(
   message: string,
 ): Promise<boolean> {
   try {
-    const response = await fetch(`${NOTIFIER_URL}/notify`, {
+    const response = await fetch(`${notifierUrl}/notify`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ channel, message } as NotifyRequest),
@@ -30,7 +30,7 @@ export async function notifyTeam(
 
 export async function checkNotifierHealth(): Promise<boolean> {
   try {
-    const response = await fetch(`${NOTIFIER_URL}/health`, {
+    const response = await fetch(`${notifierUrl}/health`, {
       method: "GET",
     });
     return response.ok;

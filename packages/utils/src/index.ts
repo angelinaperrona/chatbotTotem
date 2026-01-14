@@ -1,1 +1,6 @@
-export { getFrontendUrl, getBackendUrl, getPublicUrl } from "./url.ts";
+export {
+  getFrontendUrl,
+  getBackendUrl,
+  getPublicUrl,
+  getNotifierUrl,
+} from "./url.ts";

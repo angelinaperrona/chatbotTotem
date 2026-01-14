@@ -1,6 +1,7 @@
 import type { RequestHandler } from "./$types";
+import { getBackendUrl } from "@totem/utils";
 
-const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:3000";
+const backendUrl = getBackendUrl();
 
 /**
  * GET /webhook (Meta webhook verification)
@@ -9,7 +10,7 @@ const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:3000";
 export const GET: RequestHandler = async ({ url }) => {
   try {
     const params = url.searchParams.toString();
-    const response = await fetch(`${BACKEND_URL}/webhook?${params}`, {
+    const response = await fetch(`${backendUrl}/webhook?${params}`, {
       method: "GET",
     });
 
@@ -31,7 +32,7 @@ export const POST: RequestHandler = async ({ request }) => {
     const body = await request.text();
 
     // Fire and forget
-    fetch(`${BACKEND_URL}/webhook`, {
+    fetch(`${backendUrl}/webhook`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

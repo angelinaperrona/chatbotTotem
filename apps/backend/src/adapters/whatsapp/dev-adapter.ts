@@ -1,16 +1,16 @@
-import process from "node:process";
 import type { WhatsAppAdapter } from "./types.ts";
 import { createLogger } from "../../lib/logger.ts";
+import { getNotifierUrl, getPublicUrl } from "@totem/utils";
 
 const logger = createLogger("whatsapp");
 
-const NOTIFIER_URL = process.env.NOTIFIER_URL || "http://localhost:3001";
-const PUBLIC_URL = process.env.PUBLIC_URL || "http://localhost:3000";
+const notifierUrl = getNotifierUrl();
+const publicUrl = getPublicUrl();
 
 export const DevAdapter: WhatsAppAdapter = {
   async sendMessage(to: string, content: string): Promise<string | null> {
     try {
-      const response = await fetch(`${NOTIFIER_URL}/send`, {
+      const response = await fetch(`${notifierUrl}/send`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ phoneNumber: to, content }),
@@ -41,10 +41,10 @@ export const DevAdapter: WhatsAppAdapter = {
     imagePath: string,
     caption?: string,
   ): Promise<string | null> {
-    const imageUrl = `${PUBLIC_URL}/static/${imagePath}`;
+    const imageUrl = `${publicUrl}/static/${imagePath}`;
 
     try {
-      const response = await fetch(`${NOTIFIER_URL}/send-image`, {
+      const response = await fetch(`${notifierUrl}/send-image`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ phoneNumber: to, imageUrl, caption }),
