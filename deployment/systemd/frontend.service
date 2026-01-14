@@ -8,8 +8,10 @@ Type=simple
 User=DEPLOY_USER
 WorkingDirectory=PROJECT_ROOT/apps/frontend
 Environment="NODE_ENV=production"
+Environment="HOST=0.0.0.0"
+Environment="PORT=3000"
 Environment="PATH=DEPLOY_HOME/.bun/bin:/usr/local/bin:/usr/bin:/bin"
-ExecStart=DEPLOY_HOME/.bun/bin/bun --bun vite preview --host 0.0.0.0 --port 5173
+ExecStart=DEPLOY_HOME/.bun/bin/bun dist/index.js
 
 KillMode=mixed
 KillSignal=SIGTERM
