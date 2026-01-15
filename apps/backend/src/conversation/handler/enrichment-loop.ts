@@ -72,6 +72,34 @@ export async function runEnrichmentLoop(
     }
 
     enrichment = await executeEnrichment(result.enrichment, phoneNumber);
+
+    // Track DNI attempts in metadata after eligibility check
+    if (
+      result.enrichment.type === "check_eligibility" &&
+      enrichment.type === "eligibility_result"
+    ) {
+      const dni = result.enrichment.dni;
+      const triedDnis = metadata.triedDnis || [];
+
+      // Add DNI to tried list if not already tracked
+      if (!triedDnis.includes(dni)) {
+        metadata.triedDnis = [...triedDnis, dni];
+        logger.debug(
+          { phoneNumber, dni, attemptCount: metadata.triedDnis.length },
+          "DNI attempt tracked",
+        );
+      }
+
+      // Only persist DNI to main metadata field if eligible
+      if (enrichment.status === "eligible") {
+        metadata.dni = dni;
+        if (enrichment.name) metadata.name = enrichment.name;
+        if (enrichment.segment) metadata.segment = enrichment.segment;
+        if (enrichment.credit !== undefined)
+          metadata.credit = enrichment.credit;
+        if (enrichment.nse !== undefined) metadata.nse = enrichment.nse;
+      }
+    }
   }
 
   // Safety: too many loops, escalate

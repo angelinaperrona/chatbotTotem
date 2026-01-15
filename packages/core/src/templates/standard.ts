@@ -88,3 +88,33 @@ export const DNI_WAITING = {
     ["Con calma, no hay prisa."],
   ],
 };
+
+export const OFFER_DNI_RETRY = [
+  [
+    "No encontramos línea disponible para ese DNI. ¿Quieres intentar con otro DNI de alguien que viva contigo?",
+  ],
+  [
+    "Lamentablemente ese DNI no tiene línea disponible. Si vives con alguien más, puedes intentar con su DNI.",
+  ],
+  [
+    "Ese DNI no califica por ahora. ¿Tienes otro DNI que quieras revisar? Puede ser de un familiar que viva contigo.",
+  ],
+];
+
+export const DNI_ALREADY_TRIED = [
+  ["Ese DNI ya lo revisamos. ¿Tienes otro que quieras intentar?"],
+  ["Ya verificamos ese DNI. ¿Quieres probar con otro?"],
+  ["Ese número ya lo consultamos. ¿Tienes un DNI diferente?"],
+];
+
+export const MAX_ATTEMPTS_REACHED = [
+  [
+    "Ya revisamos varios DNIs y lamentablemente no encontramos líneas disponibles por el momento. ¡Gracias por tu interés! 😔",
+  ],
+  [
+    "Revisamos las opciones disponibles pero no encontramos línea de crédito. Te agradecemos por contactarnos.",
+  ],
+  [
+    "Desafortunadamente no podemos proceder en este momento. Si tienes dudas, vuelve a escribirnos. 😔",
+  ],
+];

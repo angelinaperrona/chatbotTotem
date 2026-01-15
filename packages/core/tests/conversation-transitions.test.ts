@@ -428,7 +428,7 @@ describe("Conversation transitions (checking eligibility phase)", () => {
     }
   });
 
-  test("should close when customer is not eligible", () => {
+  test("should offer DNI retry when customer is not eligible (first attempt)", () => {
     const enrichment: EnrichmentResult = {
       type: "eligibility_result",
       status: "not_eligible",
@@ -443,10 +443,7 @@ describe("Conversation transitions (checking eligibility phase)", () => {
 
     expect(result.type).toBe("update");
     if (result.type === "update") {
-      expect(result.nextPhase.phase).toBe("closing");
-      if (result.nextPhase.phase === "closing") {
-        expect(result.nextPhase.purchaseConfirmed).toBe(false);
-      }
+      expect(result.nextPhase.phase).toBe("offering_dni_retry");
     }
   });
 

@@ -2,6 +2,7 @@ import type {
   ConversationPhase,
   TransitionResult,
   EnrichmentResult,
+  ConversationMetadata,
 } from "../types.ts";
 import { selectVariant } from "../../messaging/variation-selector.ts";
 import { checkFNBEligibility } from "../../eligibility/fnb-logic.ts";
@@ -17,6 +18,7 @@ type CheckingEligibilityPhase = Extract<
 export function transitionCheckingEligibility(
   phase: CheckingEligibilityPhase,
   _message: string,
+  metadata: ConversationMetadata,
   enrichment?: EnrichmentResult,
 ): TransitionResult {
   // If no enrichment, request eligibility check
@@ -147,7 +149,39 @@ export function transitionCheckingEligibility(
 
     // Case 3: Customer not eligible
     if (enrichment.status === "not_eligible") {
-      const { message } = selectVariant(T.NOT_ELIGIBLE, "NOT_ELIGIBLE", {});
+      const attemptCount = (metadata.triedDnis?.length || 0) + 1;
+
+      if (attemptCount < 3) {
+        const { message } = selectVariant(
+          T.OFFER_DNI_RETRY,
+          "OFFER_DNI_RETRY",
+          {},
+        );
+
+        return {
+          type: "update",
+          nextPhase: { phase: "offering_dni_retry" },
+          commands: [
+            {
+              type: "TRACK_EVENT",
+              event: "eligibility_failed",
+              metadata: {
+                segment: "none",
+                reason: "not_eligible",
+                attemptCount,
+              },
+            },
+            ...message.map((text) => ({ type: "SEND_MESSAGE" as const, text })),
+          ],
+        };
+      }
+
+      // Max attempts reached, close conversation
+      const { message } = selectVariant(
+        T.MAX_ATTEMPTS_REACHED,
+        "MAX_ATTEMPTS_REACHED",
+        {},
+      );
 
       return {
         type: "update",
@@ -156,7 +190,11 @@ export function transitionCheckingEligibility(
           {
             type: "TRACK_EVENT",
             event: "eligibility_failed",
-            metadata: { segment: "none", reason: "not_eligible" },
+            metadata: {
+              segment: "none",
+              reason: "not_eligible_max_attempts",
+              attemptCount,
+            },
           },
           ...message.map((text) => ({ type: "SEND_MESSAGE" as const, text })),
         ],

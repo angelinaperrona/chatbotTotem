@@ -5,6 +5,7 @@ export type ConversationPhase =
   | { phase: "confirming_client" }
   | { phase: "collecting_dni" }
   | { phase: "checking_eligibility"; dni: string }
+  | { phase: "offering_dni_retry" }
   | {
       phase: "collecting_age";
       dni: string;
@@ -74,6 +75,7 @@ export type ConversationMetadata = {
   age?: number;
   lastCategory?: string;
   isReturningUser?: boolean;
+  triedDnis?: string[];
   createdAt: number;
   lastActivityAt: number;
 };

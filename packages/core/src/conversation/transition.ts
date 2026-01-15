@@ -3,6 +3,7 @@ import { transitionGreeting } from "./phases/greeting.ts";
 import { transitionConfirmingClient } from "./phases/confirming-client.ts";
 import { transitionCollectingDni } from "./phases/collecting-dni.ts";
 import { transitionCheckingEligibility } from "./phases/checking-eligibility.ts";
+import { transitionOfferingDniRetry } from "./phases/offering-dni-retry.ts";
 import { transitionCollectingAge } from "./phases/collecting-age.ts";
 import { transitionOfferingProducts } from "./phases/offering-products.ts";
 import { transitionHandlingObjection } from "./phases/handling-objection.ts";
@@ -23,7 +24,15 @@ export function transition(input: TransitionInput): TransitionResult {
       return transitionCollectingDni(message, metadata);
 
     case "checking_eligibility":
-      return transitionCheckingEligibility(phase, message, enrichment);
+      return transitionCheckingEligibility(
+        phase,
+        message,
+        metadata,
+        enrichment,
+      );
+
+    case "offering_dni_retry":
+      return transitionOfferingDniRetry(phase, message, metadata);
 
     case "collecting_age":
       return transitionCollectingAge(phase, message, metadata);

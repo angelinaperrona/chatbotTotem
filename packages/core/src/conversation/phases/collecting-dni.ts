@@ -8,13 +8,32 @@ import * as T from "../../templates/standard.ts";
 
 export function transitionCollectingDni(
   message: string,
-  _metadata: ConversationMetadata,
+  metadata: ConversationMetadata,
 ): TransitionResult {
   const dni = extractDNI(message);
   const lower = message.toLowerCase();
 
   if (dni) {
-    // Valid DNI, request provider check
+    const triedDnis = metadata.triedDnis || [];
+    if (triedDnis.includes(dni)) {
+      // DNI already attempted, ask for a different one
+      const { message: messages } = selectVariant(
+        T.DNI_ALREADY_TRIED,
+        "DNI_ALREADY_TRIED",
+        {},
+      );
+
+      return {
+        type: "update",
+        nextPhase: { phase: "collecting_dni" },
+        commands: messages.map((text) => ({
+          type: "SEND_MESSAGE" as const,
+          text,
+        })),
+      };
+    }
+
+    // Valid DNI not tried before, request provider check
     return {
       type: "need_enrichment",
       enrichment: { type: "check_eligibility", dni },
