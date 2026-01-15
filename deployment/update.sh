@@ -13,7 +13,7 @@ step "Pulling latest changes"
 sudo -u totem git -C /opt/totem pull
 
 step "Rebuilding project"
-sudo -u totem bash -c 'cd /opt/totem && /opt/totem/.bun/bin/bun install'
+sudo -u totem bash -c 'cd /opt/totem && rm -rf node_modules && /opt/totem/.bun/bin/bun install'
 sudo -u totem bash -c 'cd /opt/totem/apps/frontend && /opt/totem/.bun/bin/bun run build'
 
 step "Starting services"
