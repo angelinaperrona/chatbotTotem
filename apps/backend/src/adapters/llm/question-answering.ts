@@ -113,7 +113,7 @@ export async function answerQuestionFocused(
       case "product_specs":
         return await answerProductQuestion(message, context);
 
-      case "general":
+      // case "general":
       default:
         // Fallback: answer with general context
         return await answerWithPrompt(message, buildGeneralPrompt(context));
