@@ -34,6 +34,12 @@ export type ConversationPhase =
         productId: string;
         exploredCategoriesCount: number;
       };
+      lastAction?: {
+        type: "showed_products";
+        category: string;
+        productCount: number;
+        timestamp: number;
+      };
     }
   | {
       phase: "confirming_selection";
@@ -103,6 +109,15 @@ export type EnrichmentRequest =
       type: "generate_backlog_apology";
       message: string;
       ageMinutes: number;
+    }
+  | {
+      type: "recover_unclear_response";
+      message: string;
+      context: {
+        phase: string;
+        lastQuestion?: string;
+        expectedOptions?: string[];
+      };
     };
 
 export type EnrichmentResult =
@@ -122,7 +137,11 @@ export type EnrichmentResult =
   | { type: "escalation_needed"; shouldEscalate: boolean }
   | { type: "category_extracted"; category: string | null }
   | { type: "question_answered"; answer: string }
-  | { type: "backlog_apology"; apology: string };
+  | {
+      type: "backlog_apology";
+      apology: string;
+    }
+  | { type: "recovery_response"; text: string };
 
 export type Command =
   | { type: "SEND_MESSAGE"; text: string }

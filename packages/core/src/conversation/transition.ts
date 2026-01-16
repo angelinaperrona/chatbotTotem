@@ -18,10 +18,10 @@ export function transition(input: TransitionInput): TransitionResult {
       return transitionGreeting(metadata);
 
     case "confirming_client":
-      return transitionConfirmingClient(message, metadata);
+      return transitionConfirmingClient(message, metadata, enrichment);
 
     case "collecting_dni":
-      return transitionCollectingDni(message, metadata);
+      return transitionCollectingDni(message, metadata, enrichment);
 
     case "checking_eligibility":
       return transitionCheckingEligibility(
@@ -32,10 +32,10 @@ export function transition(input: TransitionInput): TransitionResult {
       );
 
     case "offering_dni_retry":
-      return transitionOfferingDniRetry(phase, message, metadata);
+      return transitionOfferingDniRetry(phase, message, metadata, enrichment);
 
     case "collecting_age":
-      return transitionCollectingAge(phase, message, metadata);
+      return transitionCollectingAge(phase, message, metadata, enrichment);
 
     case "offering_products":
       return transitionOfferingProducts(

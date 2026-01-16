@@ -1,13 +1,25 @@
-import type { ConversationMetadata, TransitionResult } from "../types.ts";
+import type {
+  ConversationMetadata,
+  TransitionResult,
+  EnrichmentResult,
+} from "../types.ts";
 import { selectVariant } from "../../messaging/variation-selector.ts";
 import { extractDNI } from "../../validation/regex.ts";
+import { isAffirmative, isNegative } from "../../validation/affirmation.ts";
 import * as T from "../../templates/standard.ts";
 
 export function transitionConfirmingClient(
   message: string,
   metadata: ConversationMetadata,
+  enrichment?: EnrichmentResult,
 ): TransitionResult {
-  const lower = message.toLowerCase().trim();
+  if (enrichment?.type === "recovery_response") {
+    return {
+      type: "update",
+      nextPhase: { phase: "confirming_client" },
+      commands: [{ type: "SEND_MESSAGE", text: enrichment.text }],
+    };
+  }
 
   // Check if user volunteered DNI early (implicit confirmation)
   const earlyDNI = extractDNI(message);
@@ -20,11 +32,7 @@ export function transitionConfirmingClient(
   }
 
   // NEGATIVE patterns
-  if (
-    /no\s+(tengo|soy)/.test(lower) ||
-    /^no(\s|,|!|$)/.test(lower) ||
-    /\b(nada|negativo)(\s|,|!|$)/.test(lower)
-  ) {
+  if (isNegative(message)) {
     const { message } = selectVariant(
       T.CONFIRM_CLIENT_NO,
       "CONFIRM_CLIENT_NO",
@@ -46,13 +54,7 @@ export function transitionConfirmingClient(
   }
 
   // POSITIVE patterns
-  if (
-    /\bs[ií]+(\s|,|!|\?|$)/.test(lower) ||
-    /\b(claro|ok|vale|dale|afirmativo|correcto|sep|bueno)(\s|,|!|\?|$)/.test(
-      lower,
-    ) ||
-    /(soy|tengo)\s+(cliente|c[ií]lidda|gas)/.test(lower)
-  ) {
+  if (isAffirmative(message)) {
     // If we have previous session data
     if (metadata.dni && metadata.segment && metadata.credit !== undefined) {
       if (metadata.segment === "fnb") {
@@ -116,13 +118,16 @@ export function transitionConfirmingClient(
   }
 
   return {
-    type: "update",
-    nextPhase: { phase: "confirming_client" },
-    commands: [
-      {
-        type: "SEND_MESSAGE",
-        text: "Disculpa, no entendí. ¿Eres titular del servicio de gas natural de Calidda? (Responde Sí o No)",
+    type: "need_enrichment",
+    enrichment: {
+      type: "recover_unclear_response",
+      message,
+      context: {
+        phase: "confirming_client",
+        lastQuestion: "¿Eres titular del servicio de gas natural de Calidda?",
+        expectedOptions: ["Sí", "No"],
       },
-    ],
+    },
+    pendingPhase: { phase: "confirming_client" },
   };
 }

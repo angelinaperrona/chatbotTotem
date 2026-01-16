@@ -5,6 +5,8 @@ import type {
   ConversationMetadata,
 } from "../types.ts";
 import { selectVariant } from "../../messaging/variation-selector.ts";
+import { isAffirmative } from "../../validation/affirmation.ts";
+import { matchCategory } from "../../matching/category-matcher.ts";
 import * as S from "../../templates/sales.ts";
 
 type ConfirmingSelectionPhase = Extract<
@@ -16,12 +18,21 @@ export function transitionConfirmingSelection(
   phase: ConfirmingSelectionPhase,
   message: string,
   _metadata: ConversationMetadata,
-  _enrichment?: EnrichmentResult,
+  enrichment?: EnrichmentResult,
 ): TransitionResult {
+  // Use LLM recovery if available
+  if (enrichment?.type === "recovery_response") {
+    return {
+      type: "update",
+      nextPhase: phase,
+      commands: [{ type: "SEND_MESSAGE", text: enrichment.text }],
+    };
+  }
+
   const lower = message.toLowerCase();
 
   // Check for confirmation
-  if (isConfirmation(lower)) {
+  if (isAffirmative(message)) {
     const variants = S.CONFIRM_PURCHASE(phase.name || "");
     const { message: confirmMsgs } = selectVariant(
       variants,
@@ -87,23 +98,52 @@ export function transitionConfirmingSelection(
     };
   }
 
-  // Unclear response, re-ask
-  return {
-    type: "update",
-    nextPhase: phase,
-    commands: [
-      {
-        type: "SEND_MESSAGE",
-        text: "¿Confirmas tu elección? Responde 'sí' para confirmar o 'quiero ver otros' para seguir explorando.",
+  // Check if user is asking for a different category
+  const matchedCategory = matchCategory(message);
+  if (matchedCategory) {
+    return {
+      type: "update",
+      nextPhase: {
+        phase: "offering_products",
+        segment: phase.segment,
+        credit: phase.credit,
+        name: phase.name,
+        // Reset interested product if they explicitly switched category
+        interestedProduct: {
+          name: phase.selectedProduct.name,
+          price: phase.selectedProduct.price,
+          productId: phase.selectedProduct.productId,
+          exploredCategoriesCount: 1,
+        },
       },
-    ],
-  };
-}
+      commands: [
+        {
+          type: "TRACK_EVENT",
+          event: "category_switched_from_confirmation",
+          metadata: {
+            category: matchedCategory,
+            fromProduct: phase.selectedProduct.name,
+          },
+        },
+        { type: "SEND_IMAGES", category: matchedCategory },
+      ],
+    };
+  }
 
-function isConfirmation(lower: string): boolean {
-  return /(^|\s)(s[ií]|confirmo|listo|dale|va|claro|ok|perfecto)($|\s|,)/.test(
-    lower,
-  );
+  // Unclear response, re-ask with LLM help
+  return {
+    type: "need_enrichment",
+    enrichment: {
+      type: "recover_unclear_response",
+      message,
+      context: {
+        phase: "confirming_selection",
+        lastQuestion: `¿Confirmas tu elección de ${phase.selectedProduct.name}?`,
+        expectedOptions: ["Sí", "Quiero ver otros"],
+      },
+    },
+    pendingPhase: phase,
+  };
 }
 
 function isRejectionOrExplore(lower: string): boolean {

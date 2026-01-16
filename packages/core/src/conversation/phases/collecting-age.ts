@@ -6,6 +6,7 @@ import type {
   ConversationPhase,
   ConversationMetadata,
   TransitionResult,
+  EnrichmentResult,
 } from "../types.ts";
 import { selectVariant } from "../../messaging/variation-selector.ts";
 import { extractAge } from "../../validation/regex.ts";
@@ -23,23 +24,31 @@ export function transitionCollectingAge(
   phase: CollectingAgePhase,
   message: string,
   metadata: ConversationMetadata,
+  enrichment?: EnrichmentResult,
 ): TransitionResult {
-  const age = extractAge(message);
-
-  if (age === null) {
-    const { message: messages } = selectVariant(
-      T.INVALID_AGE,
-      "INVALID_AGE",
-      {},
-    );
-
+  if (enrichment?.type === "recovery_response") {
     return {
       type: "update",
       nextPhase: phase,
-      commands: messages.map((text) => ({
-        type: "SEND_MESSAGE" as const,
-        text,
-      })),
+      commands: [{ type: "SEND_MESSAGE", text: enrichment.text }],
+    };
+  }
+
+  const age = extractAge(message);
+
+  if (age === null) {
+    return {
+      type: "need_enrichment",
+      enrichment: {
+        type: "recover_unclear_response",
+        message,
+        context: {
+          phase: "collecting_age",
+          lastQuestion: "¿Me podrías indicar tu edad?",
+          expectedOptions: ["Número entre 18 y 100"],
+        },
+      },
+      pendingPhase: phase,
     };
   }
 

@@ -165,7 +165,13 @@ async function executeImages(
     const updatedPhase: ConversationPhase = {
       ...phase,
       sentProducts: result.products,
-    };
+      lastAction: {
+        type: "showed_products",
+        category: command.category,
+        productCount: result.products.length,
+        timestamp: Date.now(),
+      },
+    } as ConversationPhase;
     const conversation = getOrCreateConversation(phoneNumber);
     updateConversation(phoneNumber, updatedPhase, conversation.metadata);
   }

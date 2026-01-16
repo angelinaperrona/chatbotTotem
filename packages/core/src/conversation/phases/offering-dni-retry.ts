@@ -1,6 +1,11 @@
-import type { ConversationMetadata, TransitionResult } from "../types.ts";
+import type {
+  ConversationMetadata,
+  TransitionResult,
+  EnrichmentResult,
+} from "../types.ts";
 import { selectVariant } from "../../messaging/variation-selector.ts";
 import { extractDNI } from "../../validation/regex.ts";
+import { isAffirmative, isNegative } from "../../validation/affirmation.ts";
 import * as T from "../../templates/standard.ts";
 
 type OfferingDniRetryPhase = Extract<
@@ -12,8 +17,16 @@ export function transitionOfferingDniRetry(
   phase: OfferingDniRetryPhase,
   message: string,
   metadata: ConversationMetadata,
+  enrichment?: EnrichmentResult,
 ): TransitionResult {
-  const lower = message.toLowerCase().trim();
+  // Use LLM recovery if available
+  if (enrichment?.type === "recovery_response") {
+    return {
+      type: "update",
+      nextPhase: phase,
+      commands: [{ type: "SEND_MESSAGE", text: enrichment.text }],
+    };
+  }
 
   const attemptCount = (metadata.triedDnis?.length || 0) + 1;
 
@@ -28,11 +41,7 @@ export function transitionOfferingDniRetry(
   }
 
   // User explicitly declines retry
-  const isNegative =
-    /^(no|nop|nope|negativo|nada|no\s+tengo|ya\s+no)$/i.test(lower) ||
-    /\b(no\s+quiero|no\s+tengo|no\s+puedo)\b/.test(lower);
-
-  if (isNegative) {
+  if (isNegative(message)) {
     const { message: messages } = selectVariant(
       [
         ["Entiendo. Si en el futuro cambias de opinión, aquí estaré 😊"],
@@ -62,11 +71,7 @@ export function transitionOfferingDniRetry(
   }
 
   // User accepts (positive response)
-  const isPositive =
-    /^(s[ií]|sip|claro|ok|okey|vale|dale|bueno|perfecto)$/i.test(lower) ||
-    /\bquiero\b|\btengo\b|\bpuedo\b/.test(lower);
-
-  if (isPositive) {
+  if (isAffirmative(message)) {
     const { message: messages } = selectVariant(
       T.CONFIRM_CLIENT_YES,
       "ASK_DNI_RETRY",
@@ -83,19 +88,18 @@ export function transitionOfferingDniRetry(
     };
   }
 
-  // For acknowledgment or unclear responses, re-prompt
-  const { message: messages } = selectVariant(
-    T.OFFER_DNI_RETRY,
-    "OFFER_DNI_RETRY_REPROMPT",
-    {},
-  );
-
+  // For acknowledgment or unclear responses, re-prompt with LLM
   return {
-    type: "update",
-    nextPhase: phase,
-    commands: messages.map((text) => ({
-      type: "SEND_MESSAGE" as const,
-      text,
-    })),
+    type: "need_enrichment",
+    enrichment: {
+      type: "recover_unclear_response",
+      message,
+      context: {
+        phase: "offering_dni_retry",
+        lastQuestion: "¿Te gustaría intentar con otro número de DNI?",
+        expectedOptions: ["Sí", "No"],
+      },
+    },
+    pendingPhase: phase,
   };
 }

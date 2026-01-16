@@ -1,4 +1,8 @@
-import type { ConversationMetadata, TransitionResult } from "../types.ts";
+import type {
+  ConversationMetadata,
+  TransitionResult,
+  EnrichmentResult,
+} from "../types.ts";
 import {
   selectVariant,
   selectVariantWithContext,
@@ -9,7 +13,16 @@ import * as T from "../../templates/standard.ts";
 export function transitionCollectingDni(
   message: string,
   metadata: ConversationMetadata,
+  enrichment?: EnrichmentResult,
 ): TransitionResult {
+  if (enrichment?.type === "recovery_response") {
+    return {
+      type: "update",
+      nextPhase: { phase: "collecting_dni" },
+      commands: [{ type: "SEND_MESSAGE", text: enrichment.text }],
+    };
+  }
+
   const dni = extractDNI(message);
   const lower = message.toLowerCase();
 
@@ -111,12 +124,19 @@ export function transitionCollectingDni(
     };
   }
 
-  // Invalid DNI format
-  const { message: messages } = selectVariant(T.INVALID_DNI, "INVALID_DNI", {});
-
+  // No DNI found and no special intent, re-ask with LLM help
   return {
-    type: "update",
-    nextPhase: { phase: "collecting_dni" },
-    commands: messages.map((text) => ({ type: "SEND_MESSAGE" as const, text })),
+    type: "need_enrichment",
+    enrichment: {
+      type: "recover_unclear_response",
+      message,
+      context: {
+        phase: "collecting_dni",
+        lastQuestion:
+          "¿Me podrías facilitar tu número de DNI para verificar tu crédito?",
+        expectedOptions: ["8 dígitos numéricos"],
+      },
+    },
+    pendingPhase: { phase: "collecting_dni" },
   };
 }

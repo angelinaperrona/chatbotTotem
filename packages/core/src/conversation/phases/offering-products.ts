@@ -7,6 +7,7 @@ import type {
 import { selectVariant } from "../../messaging/variation-selector.ts";
 import { matchCategory } from "../../matching/category-matcher.ts";
 import { matchAllProducts } from "../../matching/product-selection.ts";
+import { isAffirmative } from "../../validation/affirmation.ts";
 import * as S from "../../templates/sales.ts";
 
 type OfferingProductsPhase = Extract<
@@ -82,6 +83,83 @@ export function transitionOfferingProducts(
     }
   }
 
+  // Check for affirmative response after showing products
+  if (
+    isAffirmative(message) &&
+    phase.sentProducts &&
+    phase.sentProducts.length > 0 &&
+    phase.lastAction?.type === "showed_products"
+  ) {
+    // If only 1 product was shown, auto-select it
+    if (phase.sentProducts.length === 1) {
+      const product = phase.sentProducts[0];
+      if (!product) {
+        // Safety check - should never happen but satisfies TypeScript
+        return {
+          type: "update",
+          nextPhase: phase,
+          commands: [],
+        };
+      }
+
+      const priceText = product.price
+        ? ` (S/ ${product.price.toFixed(2)})`
+        : "";
+
+      return {
+        type: "update",
+        nextPhase: {
+          phase: "confirming_selection",
+          segment: phase.segment,
+          credit: phase.credit,
+          name: phase.name,
+          selectedProduct: {
+            name: product.name,
+            price: product.price || 0,
+            productId: product.productId || "",
+          },
+        },
+        commands: [
+          {
+            type: "SEND_MESSAGE",
+            text: `Perfecto 😊 Has elegido: ${product.name}${priceText}.`,
+          },
+          {
+            type: "SEND_MESSAGE",
+            text: "¿Confirmas tu elección?",
+          },
+        ],
+      };
+    }
+
+    // Multiple products shown, ask for clarification with multi-message flow
+    const productList = phase.sentProducts
+      .map(
+        (p, idx) =>
+          `${idx + 1}. ${p.name}${p.price ? ` - S/ ${p.price.toFixed(2)}` : ""}`,
+      )
+      .join("\n");
+
+    return {
+      type: "update",
+      nextPhase: phase,
+      commands: [
+        {
+          type: "SEND_MESSAGE",
+          text: "¡Genial! ¿Te interesa alguno de los que ya te mostré?",
+        },
+        {
+          type: "SEND_MESSAGE",
+          text: `Por ahora te mostré estos:\n${productList}`,
+        },
+        {
+          type: "SEND_MESSAGE",
+          text: "¿O quieres ver otros?",
+        },
+      ],
+    };
+  }
+
   // If we have sent products, check for product match first (even without explicit interest phrase)
   // After showing products and asking "¿Alguno te interesa?", any mention is implicit interest
   if (phase.sentProducts && phase.sentProducts.length > 0) {
@@ -144,20 +222,13 @@ export function transitionOfferingProducts(
 
     if (allMatches.length > 1) {
       // Ambiguous, ask for clarification
-      const options = allMatches
-        .map((p, idx) => {
-          const priceText = p.price ? ` - S/ ${p.price.toFixed(2)}` : "";
-          return `${idx + 1}. ${p.name}${priceText}`;
-        })
-        .join("\n");
-
       return {
         type: "update",
         nextPhase: phase,
         commands: [
           {
             type: "SEND_MESSAGE",
-            text: `Tenemos varios modelos que coinciden. ¿Cuál te interesa?\n\n${options}`,
+            text: formatDisambiguationMessage(allMatches),
           },
         ],
       };
@@ -348,6 +419,14 @@ function handleEnrichmentResult(
   message: string,
   enrichment: EnrichmentResult,
 ): TransitionResult {
+  if (enrichment.type === "recovery_response") {
+    return {
+      type: "update",
+      nextPhase: phase,
+      commands: [{ type: "SEND_MESSAGE", text: enrichment.text }],
+    };
+  }
+
   if (enrichment.type === "question_detected") {
     if (enrichment.isQuestion) {
       // Check if should escalate
@@ -475,25 +554,18 @@ function handleEnrichmentResult(
   }
 
   // Fallback: couldn't extract category or unknown enrichment, ask for clarification
-  const categoryDisplayNames = phase.categoryDisplayNames || [];
-  const productList =
-    categoryDisplayNames.length > 0
-      ? categoryDisplayNames.join(", ")
-      : "nuestros productos disponibles";
-
-  const { message: messages } = selectVariant(
-    S.ASK_PRODUCT_INTEREST(productList),
-    "ASK_PRODUCT_INTEREST",
-    {},
-  );
-
   return {
-    type: "update",
-    nextPhase: phase,
-    commands: messages.map((text) => ({
-      type: "SEND_MESSAGE" as const,
-      text,
-    })),
+    type: "need_enrichment",
+    enrichment: {
+      type: "recover_unclear_response",
+      message,
+      context: {
+        phase: "offering_products",
+        lastQuestion: "¿Alguno de nuestros productos te interesa?",
+        expectedOptions: phase.categoryDisplayNames || [],
+      },
+    },
+    pendingPhase: phase,
   };
 }
 
@@ -538,4 +610,42 @@ function isPriceConcern(lower: string): boolean {
   return /(caro|muy\s+caro|precio|cuesta\s+mucho|no\s+puedo\s+pagar|no\s+tengo\s+tanta\s+plata|no\s+tengo\s+mucha\s+plata|no\s+tengo\s+suficiente\s+plata|no\s+tengo\s+plata|no\s+me\s+alcanza|no\s+tengo\s+ese\s+dinero|no\s+tengo\s+dinero|fuera\s+de\s+mi\s+presupuesto|fuera\s+de\s+presupuesto)/.test(
     lower,
   );
+}
+
+function formatDisambiguationMessage(
+  matches: { name: string; price?: number }[],
+): string {
+  if (matches.length === 0)
+    return "¿Podrías darme más detalles del que buscas? Me salen varias opciones.";
+
+  if (matches.length === 2) {
+    const [p1, p2] = matches;
+    if (!p1 || !p2)
+      return "¿Podrías darme más detalles del que buscas? Me salen varias opciones.";
+
+    const price1 = p1.price ? ` (S/ ${p1.price.toFixed(2)})` : "";
+    const price2 = p2.price ? ` (S/ ${p2.price.toFixed(2)})` : "";
+    return `¡Claro! Tengo el ${p1.name}${price1} y el ${p2.name}${price2}. ¿Cuál te gustaría más?`;
+  }
+
+  if (matches.length === 3) {
+    const [p1, p2, p3] = matches;
+    if (!p1 || !p2 || !p3)
+      return "¿Podrías darme más detalles del que buscas? Me salen varias opciones.";
+
+    const pr1 = p1.price ? ` (S/ ${p1.price.toFixed(2)})` : "";
+    const pr2 = p2.price ? ` (S/ ${p2.price.toFixed(2)})` : "";
+    const pr3 = p3.price ? ` (S/ ${p3.price.toFixed(2)})` : "";
+    return `Tengo estas tres opciones: el ${p1.name}${pr1}, el ${p2.name}${pr2} y el ${p3.name}${pr3}. ¿Cuál te interesa?`;
+  }
+
+  // Fallback for 4+ matches: use a conversational list
+  const options = matches
+    .map((p, idx) => {
+      const priceText = p.price ? ` - S/ ${p.price.toFixed(2)}` : "";
+      return `${idx + 1}. ${p.name}${priceText}`;
+    })
+    .join("\n");
+
+  return `Tenemos varios modelos que coinciden. ¿Cuál te interesa?\n\n${options}`;
 }
