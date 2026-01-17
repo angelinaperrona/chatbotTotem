@@ -104,3 +104,64 @@ export const PRICE_CONCERN = {
     ],
   ],
 };
+
+// Helper: safe list formatting
+function formatList(list: string[]): string {
+  if (!list || list.length === 0) return "nuestros productos";
+  if (list.length === 1) return list[0] ?? "";
+  const last = list.pop();
+  return `${list.join(", ")} y ${last}`;
+}
+
+export const CREDIT_LIMIT_EXPLANATION = (
+  requestedCategory: string,
+  availableCategories: string[],
+  credit: number,
+) => {
+  const options = formatList([...availableCategories]); // Copy to avoid mutation
+  return [
+    [
+      `Los productos de **${requestedCategory}** suelen pedir una línea de crédito un poco más alta (tú tienes S/ ${credit.toFixed(2)}).`,
+      `Pero con tu línea aprobada te puedes llevar **${options}** sin inicial. ¿Te muestro alguno de esos? 😊`,
+    ],
+    [
+      `Para **${requestedCategory}** a veces piden más crédito o una inicial.`,
+      `Con tu línea de S/ ${credit.toFixed(2)} tengo disponibles: **${options}**. ¿Les damos una mirada?`,
+    ],
+  ];
+};
+
+export const UNAVAILABLE_PRODUCT = (
+  requestedCategory: string,
+  availableCategories: string[],
+) => {
+  const options = formatList([...availableCategories]);
+  return [
+    [
+      `Uy, **${requestedCategory}** no nos han llegado por ahora 😕.`,
+      `Pero si buscas algo nuevo, tengo **${options}**. ¿Te animas a ver alguno?`,
+    ],
+    [
+      `Por el momento no tenemos **${requestedCategory}** en stock.`,
+      `Lo que sí tengo listo para entrega son: **${options}**. ¿Cuál te llama la atención?`,
+    ],
+    [
+      `Mmm, **${requestedCategory}** se nos agotaron temporalmente.`,
+      `¿Te gustaría ver **${options}**?`,
+    ],
+  ];
+};
+
+export const SPECIFIC_PRODUCT_ALTERNATIVE = (
+  requestedProduct: string,
+  category: string,
+) => [
+  [
+    `Ese modelo exacto (${requestedProduct}) no lo tengo ahorita en stock.`,
+    `Pero en **${category}** tengo modelos muy buenos. ¿Quieres ver sus fotos?`,
+  ],
+  [
+    `El ${requestedProduct} voló, ya no me queda.`,
+    `Pero tengo otros **${category}** con características parecidas. ¿Te las paso?`,
+  ],
+];

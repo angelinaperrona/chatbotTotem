@@ -2,6 +2,7 @@ export type VariantKey = string; // e.g., "GREETING", "COLLECT_DNI"
 
 export interface VariantContext {
   usedVariantKeys?: Record<VariantKey, number>; // Key: variant index used
+  [key: string]: unknown;
 }
 
 /**

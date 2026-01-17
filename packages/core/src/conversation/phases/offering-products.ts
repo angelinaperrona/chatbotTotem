@@ -33,7 +33,6 @@ export function transitionOfferingProducts(
     return handleEnrichmentResult(phase, message, enrichment);
   }
 
-  // Handle quoted message context, user is responding to a specific product
   if (quotedContext && phase.sentProducts && phase.sentProducts.length > 0) {
     let quotedProduct: any = null;
 
@@ -78,19 +77,15 @@ export function transitionOfferingProducts(
           },
         ],
       };
-    } else {
-      // No product found matching quoted message, continue to normal flow
     }
   }
 
-  // Check for affirmative response after showing products
   if (
     isAffirmative(message) &&
     phase.sentProducts &&
     phase.sentProducts.length > 0 &&
     phase.lastAction?.type === "showed_products"
   ) {
-    // If only 1 product was shown, auto-select it
     if (phase.sentProducts.length === 1) {
       const product = phase.sentProducts[0];
       if (!product) {
@@ -132,7 +127,6 @@ export function transitionOfferingProducts(
       };
     }
 
-    // Multiple products shown, ask for clarification with multi-message flow
     const productList = phase.sentProducts
       .map(
         (p, idx) =>
@@ -160,20 +154,16 @@ export function transitionOfferingProducts(
     };
   }
 
-  // If we have sent products, check for product match first (even without explicit interest phrase)
-  // After showing products and asking "¿Alguno te interesa?", any mention is implicit interest
   if (phase.sentProducts && phase.sentProducts.length > 0) {
     const allMatches = matchAllProducts(message, phase.sentProducts);
 
     if (allMatches.length === 1) {
-      // Unique match, transition to confirmation gate
       const selected = allMatches[0];
       if (selected) {
         const priceText = selected.price
           ? ` (S/ ${selected.price.toFixed(2)})`
           : "";
 
-        // Check if this is re-selecting the interested product or new selection
         const isReselection =
           phase.interestedProduct &&
           phase.interestedProduct.productId === selected.productId;
@@ -221,7 +211,6 @@ export function transitionOfferingProducts(
     }
 
     if (allMatches.length > 1) {
-      // Ambiguous, ask for clarification
       return {
         type: "update",
         nextPhase: phase,
@@ -233,11 +222,8 @@ export function transitionOfferingProducts(
         ],
       };
     }
-
-    // No matches found in sent products, continue with normal flow below
   }
 
-  // If user expresses interest without context (no sentProducts), ask what they want to see
   if (isProductSelection(lower)) {
     const categoryDisplayNames = phase.categoryDisplayNames || [];
     const productList =
@@ -257,10 +243,8 @@ export function transitionOfferingProducts(
     };
   }
 
-  // Check for category matching
   const matchedCategory = matchCategory(message);
   if (matchedCategory) {
-    // If same category, ask which specific product
     if (phase.lastShownCategory === matchedCategory) {
       return {
         type: "update",
@@ -274,7 +258,6 @@ export function transitionOfferingProducts(
       };
     }
 
-    // Different category, allow switch
     const exploredCount = phase.interestedProduct
       ? phase.interestedProduct.exploredCategoriesCount + 1
       : 0;
@@ -304,7 +287,6 @@ export function transitionOfferingProducts(
       { type: "SEND_IMAGES", category: matchedCategory },
     ];
 
-    // Send reminder after viewing 2 different categories
     if (exploredCount === 2 && phase.interestedProduct) {
       const priceText = ` (S/ ${phase.interestedProduct.price.toFixed(2)})`;
       commands.push({
@@ -320,7 +302,6 @@ export function transitionOfferingProducts(
     };
   }
 
-  // Check for "show me other products" patterns
   if (isRequestingOtherOptions(lower)) {
     const categoryDisplayNames = phase.categoryDisplayNames || [];
     const productList =
@@ -344,7 +325,6 @@ export function transitionOfferingProducts(
     };
   }
 
-  // Generic confirmations without product context - ask what they want
   if (isPurchaseConfirmation(lower)) {
     const categoryDisplayNames = phase.categoryDisplayNames || [];
     const productList =
@@ -364,7 +344,6 @@ export function transitionOfferingProducts(
     };
   }
 
-  // Check for rejection
   if (isRejection(lower)) {
     return {
       type: "update",
@@ -383,7 +362,6 @@ export function transitionOfferingProducts(
     };
   }
 
-  // Check for price concern, transition to objection handling
   if (isPriceConcern(lower)) {
     const { message } = selectVariant(
       S.PRICE_CONCERN.standard,
@@ -407,7 +385,6 @@ export function transitionOfferingProducts(
     };
   }
 
-  // Need LLM to understand, first detect if it's a question
   return {
     type: "need_enrichment",
     enrichment: { type: "detect_question", message },
@@ -429,25 +406,13 @@ function handleEnrichmentResult(
 
   if (enrichment.type === "question_detected") {
     if (enrichment.isQuestion) {
-      // Check if should escalate
       return {
         type: "need_enrichment",
         enrichment: { type: "should_escalate", message },
       };
     }
-
-    // Not a question, try to extract category with LLM
-    return {
-      type: "need_enrichment",
-      enrichment: {
-        type: "extract_category",
-        message,
-        availableCategories: phase.availableCategories!,
-      },
-    };
   }
 
-  // Escalation decision
   if (enrichment.type === "escalation_needed") {
     if (enrichment.shouldEscalate) {
       return {
@@ -467,7 +432,6 @@ function handleEnrichmentResult(
       };
     }
 
-    // Answer the question
     return {
       type: "need_enrichment",
       enrichment: {
@@ -483,73 +447,11 @@ function handleEnrichmentResult(
     };
   }
 
-  // Question answered
   if (enrichment.type === "question_answered") {
     return {
       type: "update",
       nextPhase: phase,
       commands: [{ type: "SEND_MESSAGE", text: enrichment.answer }],
-    };
-  }
-
-  // Category extracted
-  if (enrichment.type === "category_extracted" && enrichment.category) {
-    // If LLM extracted same category we already showed, ask which product
-    if (phase.lastShownCategory === enrichment.category) {
-      return {
-        type: "update",
-        nextPhase: phase,
-        commands: [
-          {
-            type: "SEND_MESSAGE",
-            text: "¿Cuál de los productos te interesa? Puedes decir 'el primero', 'el segundo', etc.",
-          },
-        ],
-      };
-    }
-
-    // Different category, show new products
-    const exploredCount = phase.interestedProduct
-      ? phase.interestedProduct.exploredCategoriesCount + 1
-      : 0;
-
-    const updatedPhase = {
-      ...phase,
-      lastShownCategory: enrichment.category,
-      interestedProduct: phase.interestedProduct
-        ? {
-            ...phase.interestedProduct,
-            exploredCategoriesCount: exploredCount,
-          }
-        : undefined,
-    };
-
-    const commands: Command[] = [
-      {
-        type: "TRACK_EVENT",
-        event: "category_selected",
-        metadata: {
-          category: enrichment.category,
-          method: "llm",
-          exploredCount,
-        },
-      },
-      { type: "SEND_IMAGES", category: enrichment.category },
-    ];
-
-    // Send reminder after viewing 2 different categories
-    if (exploredCount === 2 && phase.interestedProduct) {
-      const priceText = ` (S/ ${phase.interestedProduct.price.toFixed(2)})`;
-      commands.push({
-        type: "SEND_MESSAGE",
-        text: `Por cierto ${phase.name}, recuerda que te interesaba el ${phase.interestedProduct.name}${priceText}. ¿Quieres confirmarlo?`,
-      });
-    }
-
-    return {
-      type: "update",
-      nextPhase: updatedPhase,
-      commands,
     };
   }
 

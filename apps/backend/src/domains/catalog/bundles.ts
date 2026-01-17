@@ -195,4 +195,33 @@ export const BundleService = {
     );
     return rows.map((r) => r.category);
   },
+
+  /**
+   * Get ALL categories that exist in the bundles table (taxonomy),
+   * regardless of whether they are currently active or in stock.
+   * Used for "We don't have that right now" vs "We never have that" distinction.
+   */
+  getAllCategories: (): string[] => {
+    const rows = getAll<{ category: string }>(
+      "SELECT DISTINCT primary_category as category FROM catalog_bundles ORDER BY primary_category",
+    );
+    return rows.map((r) => r.category);
+  },
+
+  /**
+   * Check if a specific product exists in the active catalog for a category.
+   */
+  hasProduct: (category: string, productQuery: string): boolean => {
+    const row = getOne<{ count: number }>(
+      `SELECT COUNT(*) as count FROM catalog_bundles b
+       JOIN catalog_periods p ON b.period_id = p.id
+       WHERE p.status = 'active'
+         AND b.is_active = 1
+         AND b.stock_status != 'out_of_stock'
+         AND b.primary_category = ?
+         AND b.name LIKE ?`,
+      [category, `%${productQuery}%`],
+    );
+    return (row?.count || 0) > 0;
+  },
 };

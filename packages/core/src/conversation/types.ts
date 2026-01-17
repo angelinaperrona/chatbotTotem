@@ -1,4 +1,4 @@
-import type { Segment } from "@totem/types";
+import type { Segment, Bundle } from "@totem/types";
 
 export type ConversationPhase =
   | { phase: "greeting" }
@@ -12,6 +12,7 @@ export type ConversationPhase =
       name: string;
       credit?: number;
       affordableCategories?: string[];
+      affordableBundles?: Bundle[];
       categoryDisplayNames?: string[];
     }
   | {
@@ -20,6 +21,7 @@ export type ConversationPhase =
       credit: number;
       name: string;
       availableCategories?: string[];
+      affordableBundles?: Bundle[];
       categoryDisplayNames?: string[];
       lastShownCategory?: string;
       sentProducts?: Array<{
@@ -90,10 +92,11 @@ export type EnrichmentRequest =
   | { type: "check_eligibility"; dni: string }
   | { type: "detect_question"; message: string }
   | { type: "should_escalate"; message: string }
+  | { type: "is_product_request"; message: string }
   | {
-      type: "extract_category";
+      type: "extract_bundle_intent";
       message: string;
-      availableCategories: string[];
+      affordableBundles: Bundle[];
     }
   | {
       type: "answer_question";
@@ -131,11 +134,17 @@ export type EnrichmentResult =
       requiresAge?: boolean;
       handoffReason?: string;
       affordableCategories?: string[];
+      affordableBundles?: Bundle[];
       categoryDisplayNames?: string[];
     }
   | { type: "question_detected"; isQuestion: boolean }
   | { type: "escalation_needed"; shouldEscalate: boolean }
-  | { type: "category_extracted"; category: string | null }
+  | { type: "product_request_detected"; isProductRequest: boolean }
+  | {
+      type: "bundle_intent_extracted";
+      bundle: Bundle | null;
+      confidence: number;
+    }
   | { type: "question_answered"; answer: string }
   | {
       type: "backlog_apology";
@@ -146,6 +155,7 @@ export type EnrichmentResult =
 export type Command =
   | { type: "SEND_MESSAGE"; text: string }
   | { type: "SEND_IMAGES"; category: string }
+  | { type: "SEND_BUNDLE"; bundleId: string }
   | { type: "TRACK_EVENT"; event: string; metadata?: Record<string, unknown> }
   | { type: "NOTIFY_TEAM"; channel: "agent" | "dev" | "sales"; message: string }
   | { type: "ESCALATE"; reason: string };

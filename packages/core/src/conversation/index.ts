@@ -1,4 +1,5 @@
 export { transition } from "./transition.ts";
+export { transitionOfferingProducts } from "./phases/offering-products.ts";
 export type {
   ConversationPhase,
   ConversationMetadata,
