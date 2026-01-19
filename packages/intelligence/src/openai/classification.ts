@@ -19,7 +19,6 @@ export async function isQuestion(
       { role: "user", content: message },
     ],
     response_format: { type: "json_object" },
-    temperature: 0.2,
   });
 
   const content = completion.choices[0]?.message.content;
