@@ -39,16 +39,14 @@ describe("AsyncEventEmitter", () => {
   });
 
   it("should log errors for async event handlers", async () => {
+    const mockLogger = { error: mock(() => {}) } as any;
+
     const eventBus = new EventBus();
-    const emitter = new AsyncEventEmitter(eventBus);
+    const emitter = new AsyncEventEmitter(eventBus, mockLogger);
 
-    const mockLogger = mock(() => {});
-    // Mock the logger
-    mock.module("../src/lib/logger.ts", () => ({
-      createLogger: () => ({ error: mockLogger }),
-    }));
-
+    let errorThrown = false;
     eventBus.on("test", () => {
+      errorThrown = true;
       throw new Error("Test error");
     });
 
@@ -56,6 +54,10 @@ describe("AsyncEventEmitter", () => {
 
     await new Promise((resolve) => setTimeout(resolve, 0));
 
-    expect(mockLogger).toHaveBeenCalled();
+    // First verify the error was thrown
+    expect(errorThrown).toBe(true);
+
+    // Then check if logger was called
+    expect(mockLogger.error).toHaveBeenCalled();
   });
 });

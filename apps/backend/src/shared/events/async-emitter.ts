@@ -1,11 +1,17 @@
 import type { DomainEvent } from "./types.ts";
 import { EventBus } from "./event-bus.ts";
 import { createLogger } from "../../lib/logger.ts";
-
-const logger = createLogger("async-emitter");
+import type { Logger } from "@totem/logger";
 
 export class AsyncEventEmitter {
-  constructor(private eventBus: EventBus) {}
+  private logger: Logger;
+
+  constructor(
+    private eventBus: EventBus,
+    logger?: Logger,
+  ) {
+    this.logger = logger || createLogger("async-emitter");
+  }
 
   /**
    * Emit event and wait for all handlers to complete.
@@ -24,7 +30,7 @@ export class AsyncEventEmitter {
     Promise.resolve()
       .then(() => this.eventBus.emit(event))
       .catch((error) => {
-        logger.error(
+        this.logger.error(
           { error, eventType: event.type },
           "Async event handler failed",
         );
