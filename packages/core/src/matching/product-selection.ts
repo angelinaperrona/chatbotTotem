@@ -137,6 +137,60 @@ export function matchAllProducts(
 }
 
 /**
+ * Extract intent from message if it contains specific product identifiers
+ */
+export function extractProductIntent(
+  message: string,
+): { type: "specific"; query: string } | null {
+  const lower = message.toLowerCase();
+
+  // 1. Check for explicit intent phrases + specific specifiers
+  // "quiero un iphone", "busco samsung", "tienes motorola"
+  const intentPhrase =
+    /(quiero|quisiera|busco|tienes|tienen|tráeme|muéstrame|ver|comprar|necesito|interesa)/;
+  const hasIntent = intentPhrase.test(lower);
+
+  // 2. cleaning the message to extract the "what"
+  // Remove common start phrases
+  let cleanQuery = lower
+    .replace(
+      /^(hola|buenos\s+dias|buenas\s+tardes|buenas\s+noches|dime|oye|por\s+favor)/g,
+      "",
+    )
+    .replace(
+      /(me interesa|quiero|quisiera|me gustaría|dame|deme|me llevo|busco|necesito|tienes|ver|comprar)/gi,
+      "",
+    )
+    .replace(/\b(el|la|los|las|un|una|unos|unas)\b/g, "") // articles
+    .replace(/\b(celular|telefono|equipo|smartphone|movil)\b/g, "") // generic categories
+    .trim();
+
+  // If the query is empty or too short, it's likely just "quiero un celular" (generic)
+  if (cleanQuery.length < 2) return null;
+
+  // 3. Validate if the remaining text looks like a product specifier
+  // Common brands/models we expect (not exhaustive, just heuristic)
+  const isLikelyProduct =
+    /(iphone|samsung|galaxy|xiaomi|redmi|motorola|moto|honor|huawei|zte|oppo|vivo|realme|infinix|tecno|nokia|lg|sony|pixel|pro|max|ultra|plus|lite|note)/.test(
+      cleanQuery,
+    ) ||
+    // Or it has alphanumeric structure like "a14", "s23", "15 pro"
+    /[a-z]+[0-9]+|[0-9]+[a-z]+/.test(cleanQuery);
+
+  if (hasIntent && isLikelyProduct) {
+    return { type: "specific", query: cleanQuery };
+  }
+
+  // Also catch direct mentions without intent phrase if they are very specific
+  // e.g. "iPhone 15 Pro Max"
+  if (cleanQuery.length > 5 && isLikelyProduct) {
+    return { type: "specific", query: cleanQuery };
+  }
+
+  return null;
+}
+
+/**
  * Extract significant tokens from text (brands, models, alphanumeric sequences)
  * Filters out common Spanish stopwords
  * Works dynamically with any product name - no hardcoded model lists

@@ -44,6 +44,8 @@ export type ConversationPhase =
         productCount: number;
         timestamp: number;
       };
+      pagination?: Record<string, number>;
+      lastSearchQuery?: string;
     }
   | {
       phase: "confirming_selection";
@@ -159,7 +161,12 @@ export type EnrichmentResult =
 
 export type Command =
   | { type: "SEND_MESSAGE"; text: string }
-  | { type: "SEND_IMAGES"; category: string }
+  | {
+      type: "SEND_IMAGES";
+      category?: string;
+      offset?: number;
+      query?: string;
+    }
   | { type: "SEND_BUNDLE"; bundleId: string }
   | { type: "TRACK_EVENT"; event: string; metadata?: Record<string, unknown> }
   | { type: "NOTIFY_TEAM"; channel: "agent" | "dev" | "sales"; message: string }

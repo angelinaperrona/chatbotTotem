@@ -8,6 +8,9 @@ type BundleFilters = {
   periodId?: string;
   maxPrice?: number;
   category?: string;
+  strictPriceLimit?: boolean;
+  offset?: number;
+  query?: string;
   segment?: "gaso" | "fnb";
 };
 
@@ -45,7 +48,7 @@ export const BundleService = {
       params.push(filters.segment);
     }
 
-    if (filters.maxPrice !== undefined) {
+    if (filters.strictPriceLimit && filters.maxPrice !== undefined) {
       query += " AND b.price <= ?";
       params.push(filters.maxPrice);
     }
@@ -56,7 +59,18 @@ export const BundleService = {
       params.push(filters.category, `%"${filters.category}"%`);
     }
 
+    if (filters.query) {
+      query += " AND b.name LIKE ?";
+      params.push(`%${filters.query}%`);
+    }
+
     query += " ORDER BY b.price ASC";
+    query += " LIMIT 3";
+
+    if (filters.offset) {
+      query += " OFFSET ?";
+      params.push(filters.offset);
+    }
 
     const rows = getAll<Bundle>(query, params);
     return rows;
@@ -189,9 +203,10 @@ export const BundleService = {
       `SELECT DISTINCT b.primary_category as category FROM catalog_bundles b
        JOIN catalog_periods p ON b.period_id = p.id
        WHERE p.status = 'active' AND b.is_active = 1 AND b.stock_status != 'out_of_stock'
-         AND b.segment = ? AND b.price <= ?
+         AND b.segment = ?
+         ${segment === "gaso" ? "AND b.price <= ?" : ""}
        ORDER BY b.primary_category`,
-      [segment, creditLine],
+      segment === "gaso" ? [segment, creditLine] : [segment],
     );
     return rows.map((r) => r.category);
   },

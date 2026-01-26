@@ -5,7 +5,7 @@ import type {
   Command,
 } from "@totem/core";
 import { WhatsAppService } from "../../adapters/whatsapp/index.ts";
-import { notifyTeam } from "../../adapters/notifier/client.ts";
+import { NotificationService } from "../../domains/notifications/service.ts";
 import { sendBundleImages } from "../images.ts";
 import { trackEvent } from "../../domains/analytics/index.ts";
 import { BundleService } from "../../domains/catalog/index.ts";
@@ -15,12 +15,6 @@ import { createLogger } from "../../lib/logger.ts";
 
 const logger = createLogger("commands");
 
-/**
- * Execute commands returned by the state machine.
- *
- * Implements the command pattern: state machine returns pure data commands,
- * this module executes them with side effects.
- */
 export async function executeCommands(
   result: TransitionResult,
   phoneNumber: string,
@@ -33,9 +27,14 @@ export async function executeCommands(
       { phoneNumber, resultType: result.type },
       "Unexpected need_enrichment in executeCommands",
     );
-    await notifyTeam(
+    await NotificationService.notifyGeneric(
       "dev",
-      `CRITICAL: need_enrichment leaked to executeCommands for ${phoneNumber}`,
+      {
+        phoneNumber,
+        clientName: metadata.name,
+        dni: metadata.dni,
+      },
+      "Error en ejecución de comandos",
     );
     return;
   }
@@ -106,7 +105,16 @@ async function executeCommand(
       break;
 
     case "NOTIFY_TEAM":
-      await notifyTeam(command.channel, command.message);
+      await NotificationService.notifyGeneric(
+        command.channel,
+        {
+          phoneNumber,
+          clientName: metadata.name,
+          dni: metadata.dni,
+          urlSuffix: `/conversations/${phoneNumber}`,
+        },
+        command.message,
+      );
       break;
 
     case "ESCALATE":
@@ -163,6 +171,8 @@ async function executeImages(
     category: command.category,
     creditLine: credit,
     isSimulation,
+    offset: command.offset,
+    query: command.query,
   });
 
   // Update phase with sent products for validation in next message

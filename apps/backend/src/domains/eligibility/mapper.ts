@@ -69,6 +69,7 @@ export function mapEligibilityToEnrichment(
     const affordableBundles = BundleService.getAvailable({
       segment,
       maxPrice: credit,
+      strictPriceLimit: segment === "gaso", // gaso is strict, fnb is soft
     });
 
     return {

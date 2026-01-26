@@ -1,6 +1,6 @@
 import { db } from "../../db/index.ts";
 import { createLogger } from "../../lib/logger.ts";
-import { getFrontendUrl, getNotifierUrl } from "@totem/utils";
+import { NotificationService } from "../notifications/service.ts";
 
 const logger = createLogger("assignment");
 
@@ -61,45 +61,17 @@ export async function assignNextAgent(
   ).run(assignedAgent.id, Date.now(), phoneNumber);
 
   if (assignedAgent.phone_number) {
-    await sendAssignmentNotification(
+    await NotificationService.notifyAgentAssignment(
       assignedAgent.phone_number,
-      clientName,
-      phoneNumber,
+      {
+        phoneNumber,
+        clientName,
+        urlSuffix: `/conversations/${phoneNumber}`,
+      },
     );
   }
 
   return assignedAgent.id;
-}
-
-async function sendAssignmentNotification(
-  agentPhone: string,
-  clientName: string | null,
-  clientPhone: string,
-): Promise<void> {
-  const frontendUrl = getFrontendUrl();
-  const message =
-    `🎯 Nueva asignación de cliente\n\n` +
-    `Cliente: ${clientName || "Sin nombre"}\n` +
-    `Teléfono: ${clientPhone}\n\n` +
-    `El cliente está listo para contratar.\n` +
-    `Accede aquí: ${frontendUrl}/dashboard/conversations/${clientPhone}\n\n` +
-    `Tienes 5 minutos para aceptar esta asignación.`;
-
-  const notifierUrl = getNotifierUrl();
-
-  try {
-    await fetch(`${notifierUrl}/notify`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        channel: "direct",
-        phoneNumber: agentPhone,
-        message,
-      }),
-    });
-  } catch (error) {
-    logger.error({ error, agentPhone, clientPhone }, "Failed to notify agent");
-  }
 }
 
 export function checkAndReassignTimeouts(): void {

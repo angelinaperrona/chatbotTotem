@@ -7,7 +7,10 @@ import type {
 import { selectVariant } from "../../messaging/variation-selector.ts";
 import { matchCategory } from "../../matching/category-matcher.ts";
 import { matchGroup } from "../../matching/group-matcher.ts";
-import { matchAllProducts } from "../../matching/product-selection.ts";
+import {
+  matchAllProducts,
+  extractProductIntent,
+} from "../../matching/product-selection.ts";
 import { isAffirmative } from "../../validation/affirmation.ts";
 import { CATEGORY_GROUPS, CATEGORIES, type CategoryKey } from "@totem/types";
 import * as S from "../../templates/sales.ts";
@@ -194,9 +197,14 @@ export function transitionOfferingProducts(
               type: "SEND_MESSAGE",
               text: confirmationMsg1,
             },
+
             {
               type: "SEND_MESSAGE",
-              text: "¿Confirmas tu elección?",
+              text:
+                phase.segment === "fnb" &&
+                (selected.price || 0) > (phase.credit || 0)
+                  ? `El precio de este producto es S/ ${selected.price?.toFixed(2)}, un poco mayor a tu línea aprobada de S/ ${phase.credit.toFixed(2)}. Si deseas, puedes pagar la diferencia con un pago directo. ¿Continuamos?`
+                  : "¿Confirmas tu elección?",
             },
             {
               type: "TRACK_EVENT",
@@ -207,11 +215,6 @@ export function transitionOfferingProducts(
                 productName: selected.name,
                 price: selected.price,
               },
-            },
-            {
-              type: "NOTIFY_TEAM",
-              channel: "agent",
-              message: `Cliente seleccionó: ${selected.name}${priceText} - esperando confirmación`,
             },
           ],
         };
@@ -230,6 +233,32 @@ export function transitionOfferingProducts(
         ],
       };
     }
+  }
+
+  // Check for specific product intent (e.g. "quiero un iphone")
+  const specificIntent = extractProductIntent(message);
+  if (specificIntent) {
+    const categoryToUse = phase.lastShownCategory;
+
+    return {
+      type: "update",
+      nextPhase: {
+        ...phase,
+        lastSearchQuery: specificIntent.query,
+      },
+      commands: [
+        {
+          type: "SEND_MESSAGE",
+          text: `Buscando ${specificIntent.query}...`,
+        },
+        {
+          type: "SEND_IMAGES",
+          category: categoryToUse,
+          query: specificIntent.query,
+          offset: 0,
+        },
+      ],
+    };
   }
 
   if (isProductSelection(lower)) {
@@ -364,6 +393,38 @@ export function transitionOfferingProducts(
   }
 
   if (isRequestingOtherOptions(lower)) {
+    // If we are currently showing a category (or search results), "otros" means "next page"
+    if (phase.lastShownCategory) {
+      const currentOffset =
+        (phase.pagination && phase.pagination[phase.lastShownCategory]) || 0;
+      const newOffset = currentOffset + 3;
+
+      const newPagination = {
+        ...(phase.pagination || {}),
+        [phase.lastShownCategory]: newOffset,
+      };
+
+      return {
+        type: "update",
+        nextPhase: {
+          ...phase,
+          pagination: newPagination,
+        },
+        commands: [
+          {
+            type: "SEND_MESSAGE",
+            text: "Aquí tengo más opciones:",
+          },
+          {
+            type: "SEND_IMAGES",
+            category: phase.lastShownCategory,
+            offset: newOffset,
+            query: phase.lastSearchQuery,
+          },
+        ],
+      };
+    }
+
     const categoryDisplayNames = phase.categoryDisplayNames || [];
     const productList =
       categoryDisplayNames.length > 0
@@ -486,7 +547,7 @@ function handleEnrichmentResult(
           {
             type: "NOTIFY_TEAM",
             channel: "agent",
-            message: `Cliente tiene pregunta que requiere atención humana`,
+            message: `Pregunta del cliente requiere atención humana`,
           },
           { type: "ESCALATE", reason: "customer_question_requires_human" },
         ],

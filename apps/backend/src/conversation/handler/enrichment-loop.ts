@@ -79,7 +79,7 @@ export async function runEnrichmentLoop(
       provider,
     });
 
-    // Apply enrichment results to metadata (e.g., DNI tracking, customer data)
+    // e.g., DNI tracking, customer data
     applyEnrichmentToMetadata(enrichment, result.enrichment, metadata);
   }
 
@@ -102,7 +102,7 @@ export async function runEnrichmentLoop(
       {
         type: "NOTIFY_TEAM",
         channel: "dev",
-        message: `Max enrichment loops for ${phoneNumber}`,
+        message: `Límite de bucles de enriquecimiento excedido en conversación con ${phoneNumber}`,
       },
       { type: "ESCALATE", reason: "enrichment_loop_exceeded" },
     ],
