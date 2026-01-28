@@ -12,7 +12,7 @@
         "clean:deps": "bun x shx rm -rf apps/*/node_modules node_modules",
         "clean:sessions": "bun x shx rm -rf apps/notifier/data",
         "clean:logs": "bun x shx rm -rf apps/*/data/**/logs",
-        "dev": "bun x concurrently -n tunnel,backend,notifier,frontend -c magenta,green,cyan,blue \"bun run dev:tunnel\" \"bun run dev:backend\" \"bun run dev:notifier\" \"bun run dev:frontend\"",
+        "dev": "bun x concurrently -n backend,notifier,frontend -c green,cyan,blue \"bun run dev:backend\" \"bun run dev:notifier\" \"bun run dev:frontend\"",
         "dev:backend": "cd apps/backend && bun run dev",
         "dev:frontend": "cd apps/frontend && bun run dev",
         "dev:notifier": "cd apps/notifier && bun run dev",
