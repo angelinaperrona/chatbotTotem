@@ -9,7 +9,7 @@
     "scripts": {
         "seed": "cd apps/backend && bun run seed",
         "clean": "bun run clean:deps && bun run clean:sessions && bun run clean:logs",
-        "clean:deps": "bun x shx rm -rf apps/*/node_modules node_modules",
+        "clean:deps": "bun x shx rm -rf apps/*/node_modules packages/*/node_modules node_modules",
         "clean:sessions": "bun x shx rm -rf apps/notifier/data",
         "clean:logs": "bun x shx rm -rf apps/*/data/**/logs",
         "dev": "bun x concurrently -n backend,notifier,frontend -c green,cyan,blue \"bun run dev:backend\" \"bun run dev:notifier\" \"bun run dev:frontend\"",
