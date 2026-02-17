@@ -6,6 +6,7 @@ import { transitionCheckingEligibility } from "./phases/checking-eligibility.ts"
 import { transitionOfferingDniRetry } from "./phases/offering-dni-retry.ts";
 import { transitionCollectingAge } from "./phases/collecting-age.ts";
 import { transitionOfferingProducts } from "./phases/offering-products.ts";
+import { transitionSelectingInstallments } from "./phases/selecting-installments.ts";
 import { transitionHandlingObjection } from "./phases/handling-objection.ts";
 import { transitionConfirmingSelection } from "./phases/confirming-selection.ts";
 import { transitionClosing } from "./phases/closing.ts";
@@ -46,6 +47,9 @@ export function transition(input: TransitionInput): TransitionResult {
         quotedContext,
         input.context,
       );
+
+    case "selecting_installments":
+      return transitionSelectingInstallments(phase, message, metadata);
 
     case "handling_objection":
       return transitionHandlingObjection(phase, message, metadata, enrichment);

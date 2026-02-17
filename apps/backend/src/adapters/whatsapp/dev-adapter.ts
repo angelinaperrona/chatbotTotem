@@ -2,11 +2,15 @@ import type { WhatsAppAdapter } from "./types.ts";
 import { createLogger } from "../../lib/logger.ts";
 import { getNotifierUrl, getPublicUrl } from "@totem/utils";
 import { createAbortTimeout, TIMEOUTS } from "../../config/timeouts.ts";
+import process from "node:process";
 
 const logger = createLogger("whatsapp");
 
 const notifierUrl = getNotifierUrl();
-const publicUrl = getPublicUrl();
+// Use localhost in dev, Cloudflare in production
+const backendUrl = process.env.NODE_ENV === "development" 
+  ? "http://localhost:3001" 
+  : getPublicUrl();
 
 export const DevAdapter: WhatsAppAdapter = {
   async sendMessage(to: string, content: string): Promise<string | null> {
@@ -60,15 +64,13 @@ export const DevAdapter: WhatsAppAdapter = {
     imagePath: string,
     caption?: string,
   ): Promise<string | null> {
-    const imageUrl = `${publicUrl}/media/${imagePath}`;
-
     const { signal, cleanup } = createAbortTimeout(TIMEOUTS.WHATSAPP_IMAGE);
 
     try {
       const response = await fetch(`${notifierUrl}/send-image`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phoneNumber: to, imageUrl, caption }),
+        body: JSON.stringify({ phoneNumber: to, imagePath, caption }),
         signal,
       });
 

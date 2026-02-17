@@ -27,6 +27,30 @@ type OfferingProductsPhase = Extract<
   { phase: "offering_products" }
 >;
 
+// Helper para obtener el schedule de cuotas de un producto en sentProducts
+function getProductInstallmentSchedule(
+  product: { installmentSchedule?: Record<string, number> },
+): Record<string, number> | undefined {
+  return product?.installmentSchedule;
+}
+
+// Helper para generar el string de opciones de cuotas
+function generateInstallmentOptions(schedule: Record<string, number>): string {
+  const scheduleEntries = Object.entries(schedule)
+    .filter(([, value]) => value !== undefined && value !== null)
+    .sort(
+      ([keyA], [keyB]) =>
+        parseInt(keyA.replace("m", "")) - parseInt(keyB.replace("m", "")),
+    );
+
+  return scheduleEntries
+    .map(
+      ([key, value]) =>
+        `${key.replace("m", "")} cuota${key === "1m" ? "" : "s"}: S/ ${value.toFixed(2)} c/u`,
+    )
+    .join("\n");
+}
+
 export function transitionOfferingProducts(
   phase: OfferingProductsPhase,
   message: string,
@@ -67,11 +91,12 @@ export function transitionOfferingProducts(
       const priceText = quotedProduct.price
         ? ` (S/ ${quotedProduct.price.toFixed(2)})`
         : "";
+      const installmentSchedule = getProductInstallmentSchedule(quotedProduct);
 
       return {
         type: "update",
         nextPhase: {
-          phase: "confirming_selection",
+          phase: "selecting_installments",
           segment: phase.segment,
           credit: phase.credit,
           name: phase.name || "",
@@ -79,6 +104,7 @@ export function transitionOfferingProducts(
             name: quotedProduct.name,
             price: quotedProduct.price || 0,
             productId: quotedProduct.productId || "",
+            installmentSchedule,
           },
         },
         commands: [
@@ -88,7 +114,11 @@ export function transitionOfferingProducts(
           },
           {
             type: "SEND_MESSAGE",
-            text: "¿Confirmas tu elección?",
+            text: `¿En cuántas cuotas deseas pagar?\n\n${
+              installmentSchedule
+                ? generateInstallmentOptions(installmentSchedule)
+                : "Opciones de cuotas no disponibles"
+            }`,
           },
         ],
       };
@@ -119,7 +149,7 @@ export function transitionOfferingProducts(
       return {
         type: "update",
         nextPhase: {
-          phase: "confirming_selection",
+          phase: "selecting_installments",
           segment: phase.segment,
           credit: phase.credit,
           name: phase.name,
@@ -127,6 +157,7 @@ export function transitionOfferingProducts(
             name: product.name,
             price: product.price || 0,
             productId: product.productId || "",
+            installmentSchedule: getProductInstallmentSchedule(product),
           },
         },
         commands: [
@@ -136,7 +167,13 @@ export function transitionOfferingProducts(
           },
           {
             type: "SEND_MESSAGE",
-            text: "¿Confirmas tu elección?",
+            text: `¿En cuántas cuotas deseas pagar?\n\n${
+              getProductInstallmentSchedule(product)
+                ? generateInstallmentOptions(
+                    getProductInstallmentSchedule(product)!,
+                  )
+                : "Opciones de cuotas no disponibles"
+            }`,
           },
         ],
       };
@@ -190,7 +227,7 @@ export function transitionOfferingProducts(
         return {
           type: "update",
           nextPhase: {
-            phase: "confirming_selection",
+            phase: "selecting_installments",
             segment: phase.segment,
             credit: phase.credit,
             name: phase.name,
@@ -198,6 +235,7 @@ export function transitionOfferingProducts(
               name: selected.name,
               price: selected.price || 0,
               productId: selected.productId || "",
+              installmentSchedule: getProductInstallmentSchedule(selected),
             },
           },
           commands: [
@@ -205,14 +243,15 @@ export function transitionOfferingProducts(
               type: "SEND_MESSAGE",
               text: confirmationMsg1,
             },
-
             {
               type: "SEND_MESSAGE",
-              text:
-                phase.segment === "fnb" &&
-                (selected.price || 0) > (phase.credit || 0)
-                  ? `El precio de este producto es S/ ${selected.price?.toFixed(2)}, un poco mayor a tu línea aprobada de S/ ${phase.credit.toFixed(2)}. Si deseas, puedes pagar la diferencia con un pago directo. ¿Continuamos?`
-                  : "¿Confirmas tu elección?",
+              text: `¿En cuántas cuotas deseas pagar?\n\n${
+                getProductInstallmentSchedule(selected)
+                  ? generateInstallmentOptions(
+                      getProductInstallmentSchedule(selected)!,
+                    )
+                  : "Opciones de cuotas no disponibles"
+              }`,
             },
             {
               type: "TRACK_EVENT",

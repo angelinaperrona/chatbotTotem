@@ -1,5 +1,6 @@
 import type { Client } from "whatsapp-web.js";
 import { MessageMedia } from "whatsapp-web.js";
+import path from "node:path";
 import {
   formatPhoneToJid,
   formatPhoneToCloudJid,
@@ -20,7 +21,7 @@ export class MessagingService {
 
   async sendImage(
     phoneNumber: string,
-    imageUrl: string,
+    imagePath: string,
     caption?: string,
   ): Promise<string> {
     if (!this.client) {
@@ -28,7 +29,9 @@ export class MessagingService {
     }
 
     const jid = formatPhoneToJid(phoneNumber);
-    const media = await MessageMedia.fromUrl(imageUrl, { unsafeMime: true });
+    // Resolve path from notifier working directory to backend data
+    const resolvedPath = path.resolve(process.cwd(), "../backend/data/uploads", imagePath);
+    const media = await MessageMedia.fromFilePath(resolvedPath);
     const message = await this.client.sendMessage(jid, media, { caption });
     return message.id._serialized;
   }

@@ -22,8 +22,8 @@ export async function sendDirectMessage(
 
 export async function sendDirectImage(
   phoneNumber: string,
-  imageUrl: string,
+  imagePath: string,
   caption?: string,
 ): Promise<string> {
-  return getMessagingService().sendImage(phoneNumber, imageUrl, caption);
+  return getMessagingService().sendImage(phoneNumber, imagePath, caption);
 }

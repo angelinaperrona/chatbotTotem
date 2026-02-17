@@ -209,8 +209,21 @@ async function executeSingleBundle(
     return;
   }
 
-  const installments = JSON.parse(bundle.installments_json);
-  const firstOption = installments[0];
+  const parsed = JSON.parse(bundle.installments_json);
+  
+  // Convert to standardized InstallmentSchedule format
+  let scheduleMap: Record<string, number> = {};
+  if (Array.isArray(parsed)) {
+    for (const item of parsed) {
+      if (item.months) {
+        scheduleMap[`${item.months}m`] = item.monthlyAmount || 0;
+      }
+    }
+  } else {
+    scheduleMap = parsed;
+  }
+  
+  const firstOption = Array.isArray(parsed) ? parsed[0] : null;
   const installmentText = firstOption
     ? `Desde S/ ${firstOption.monthlyAmount.toFixed(2)}/mes (${firstOption.months} cuotas)`
     : "";
@@ -243,6 +256,7 @@ async function executeSingleBundle(
         position: 1,
         productId: bundle.id,
         price: bundle.price,
+        installmentSchedule: Object.keys(scheduleMap).length > 0 ? scheduleMap : undefined,
       },
     ],
     lastAction: {

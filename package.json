@@ -34,5 +34,8 @@
         "pm2": "^6.0.14",
         "shx": "^0.4.0",
         "typescript": "^5.9.3"
+    },
+    "dependencies": {
+        "whatsapp-web.js": "^1.34.6"
     }
 }

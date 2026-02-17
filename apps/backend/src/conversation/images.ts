@@ -19,6 +19,7 @@ export type SendBundleResult = {
     position: number;
     productId: string;
     price: number;
+    installmentSchedule?: Record<string, number>;
   }>;
 };
 
@@ -58,8 +59,25 @@ export async function sendBundleImages(
 
   // Send each bundle image with formatted caption
   for (const [index, bundle] of bundles.entries()) {
-    const installments = JSON.parse(bundle.installments_json);
-    const firstOption = installments[0];
+    const parsed = JSON.parse(bundle.installments_json);
+    
+    // Convert to standardized InstallmentSchedule format (object with keys like "3m", "6m")
+    let scheduleMap: Record<string, number> = {};
+    
+    if (Array.isArray(parsed)) {
+      // Format: [{ months: 3, monthlyAmount: 100 }, ...]
+      for (const item of parsed) {
+        if (item.months) {
+          scheduleMap[`${item.months}m`] = item.monthlyAmount || 0;
+        }
+      }
+    } else {
+      // Format: { "3m": 100, "6m": 50, ... }
+      scheduleMap = parsed;
+    }
+    
+    // Get first installment option for display
+    const firstOption = Array.isArray(parsed) ? parsed[0] : null;
     const installmentText = firstOption
       ? `Desde S/ ${firstOption.monthlyAmount.toFixed(2)}/mes (${firstOption.months} cuotas)`
       : "";
@@ -88,6 +106,7 @@ export async function sendBundleImages(
       position: index + 1,
       productId: bundle.id,
       price: bundle.price,
+      installmentSchedule: Object.keys(scheduleMap).length > 0 ? scheduleMap : undefined,
     });
   }
 

@@ -41,6 +41,30 @@ export function transitionConfirmingSelection(
       {},
     );
 
+    const metadata: Record<string, unknown> = {
+      segment: phase.segment,
+      productId: phase.selectedProduct.productId,
+      productName: phase.selectedProduct.name,
+      price: phase.selectedProduct.price,
+    };
+
+    const eventPayload: Record<string, unknown> = {
+      amount: phase.selectedProduct.price,
+      clientName: phase.name,
+      phoneNumber:
+        _metadata?.phoneNumber?.replace(/\D/g, "") || "unknown",
+      dni: _metadata?.dni || "unknown",
+      productId: phase.selectedProduct.productId,
+      productName: phase.selectedProduct.name,
+    };
+
+    if (phase.selectedProduct.installments) {
+      metadata.installments = phase.selectedProduct.installments;
+      metadata.pricePerInstallment = phase.selectedProduct.pricePerInstallment;
+      eventPayload.installments = phase.selectedProduct.installments;
+      eventPayload.pricePerInstallment = phase.selectedProduct.pricePerInstallment;
+    }
+
     return {
       type: "update",
       nextPhase: { phase: "closing", purchaseConfirmed: true },
@@ -48,12 +72,7 @@ export function transitionConfirmingSelection(
         {
           type: "TRACK_EVENT",
           event: "purchase_confirmed",
-          metadata: {
-            segment: phase.segment,
-            productId: phase.selectedProduct.productId,
-            productName: phase.selectedProduct.name,
-            price: phase.selectedProduct.price,
-          },
+          metadata,
         },
         ...confirmMsgs.map((text) => ({ type: "SEND_MESSAGE" as const, text })),
       ],
@@ -62,15 +81,7 @@ export function transitionConfirmingSelection(
           type: "purchase_confirmed",
           traceId: createTraceId(),
           timestamp: Date.now(),
-          payload: {
-            amount: phase.selectedProduct.price,
-            clientName: phase.name,
-            phoneNumber:
-              _metadata?.phoneNumber?.replace(/\D/g, "") || "unknown",
-            dni: _metadata?.dni || "unknown",
-            productId: phase.selectedProduct.productId,
-            productName: phase.selectedProduct.name,
-          },
+          payload: eventPayload,
         },
       ],
     };

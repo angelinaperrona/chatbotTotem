@@ -3,6 +3,7 @@ import type {
   Bundle,
   CategoryGroup,
   CatalogSnapshot,
+  InstallmentSchedule,
 } from "@totem/types";
 import type { DomainEvent } from "@totem/types";
 
@@ -37,6 +38,7 @@ export type ConversationPhase =
         position: number;
         productId?: string;
         price?: number;
+        installmentSchedule?: InstallmentSchedule;
       }>;
       interestedProduct?: {
         name: string;
@@ -62,6 +64,21 @@ export type ConversationPhase =
         name: string;
         price: number;
         productId: string;
+        installments?: number;
+        pricePerInstallment?: number;
+        installmentSchedule?: InstallmentSchedule;
+      };
+    }
+  | {
+      phase: "selecting_installments";
+      segment: Segment;
+      credit: number;
+      name: string;
+      selectedProduct: {
+        name: string;
+        price: number;
+        productId: string;
+        installmentSchedule?: InstallmentSchedule;
       };
     }
   | {
@@ -75,6 +92,7 @@ export type ConversationPhase =
         position: number;
         productId?: string;
         price?: number;
+        installmentSchedule?: InstallmentSchedule;
       }>;
     }
   | {

@@ -28,17 +28,17 @@ app.post("/send", async (c) => {
 
 // Direct image endpoint (used by backend dev adapter)
 app.post("/send-image", async (c) => {
-  const { phoneNumber, imageUrl, caption } = await c.req.json();
+  const { phoneNumber, imagePath, caption } = await c.req.json();
 
-  if (!phoneNumber || !imageUrl) {
-    return c.json({ error: "phoneNumber and imageUrl required" }, 400);
+  if (!phoneNumber || !imagePath) {
+    return c.json({ error: "phoneNumber and imagePath required" }, 400);
   }
 
   try {
-    const messageId = await sendDirectImage(phoneNumber, imageUrl, caption);
+    const messageId = await sendDirectImage(phoneNumber, imagePath, caption);
     return c.json({ status: "sent", messageId });
   } catch (error) {
-    logger.error({ error, phoneNumber, imageUrl }, "Direct image send failed");
+    logger.error({ error, phoneNumber, imagePath }, "Direct image send failed");
     return c.json({ error: "Failed to send image" }, 500);
   }
 });

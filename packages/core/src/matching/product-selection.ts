@@ -1,8 +1,11 @@
+import type { InstallmentSchedule } from "@totem/types";
+
 export type SentProduct = {
   name: string;
   position: number;
   productId?: string;
   price?: number;
+  installmentSchedule?: InstallmentSchedule;
 };
 
 /**
