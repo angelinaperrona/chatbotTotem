@@ -22,7 +22,7 @@ type BundleSeed = {
 export const FNB_BUNDLES_SEED: BundleSeed[] = [
   {
     image_id: "e0945b55ea90479f",
-    name: "Samsung Galaxy A26",
+    name: "Samsung A26",
     price: 1899,
     primary_category: "celulares",
     categories: ["celulares"],
