@@ -6,6 +6,7 @@ import type {
 } from "../types.ts";
 import { createTraceId } from "@totem/utils";
 import { selectVariant } from "../../messaging/variation-selector.ts";
+import { isCasualGreeting, isFormalGreeting } from "../../messaging/tone-detector.ts";
 import * as S from "../../templates/sales.ts";
 
 type HandlingObjectionPhase = Extract<
@@ -22,6 +23,22 @@ export function transitionHandlingObjection(
   enrichment?: EnrichmentResult,
 ): TransitionResult {
   const lower = message.toLowerCase();
+  const normalized = message.toLowerCase().trim();
+
+  // Detect simple greeting to restart conversation (only if message is very short/pure greeting)
+  if ((lower.length <= 10) && (isCasualGreeting(normalized) || isFormalGreeting(normalized))) {
+    return {
+      type: "update",
+      nextPhase: { phase: "greeting" },
+      commands: [
+        {
+          type: "TRACK_EVENT",
+          event: "greeting_restart",
+          metadata: { from_handling_objection: true },
+        },
+      ],
+    };
+  }
 
   // Handle LLM question detection/answering first
   if (enrichment) {

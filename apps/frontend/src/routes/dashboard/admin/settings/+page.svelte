@@ -218,7 +218,7 @@
                 Recuperación de Elegibilidad
               </div>
               <p class="text-xs text-blue-700/80 mt-1 leading-relaxed">
-                Si hubo una caída de proveedores (Calidda/PowerBI), los usuarios
+                Si hay una caída del servicio FNB (Calidda), los usuarios
                 pueden haber quedado en espera. Use este botón para reintentar
                 la verificación de eligibilidad para todos los usuarios
                 afectados.
@@ -351,11 +351,11 @@
             />
             <div class="flex-1">
               <div class="font-medium text-sm text-ink-900">
-                Suspender API PowerBI (GASO)
+                Simulación de GASO
               </div>
               <p class="text-xs text-ink-500 mt-1">
-                Simular caída del servicio de reportes. Útil para desarrollo y
-                validación de errores.
+                Configurar modo de simulación para clientes GASO. PowerBI ha
+                sido retirado.
               </p>
             </div>
           </label>

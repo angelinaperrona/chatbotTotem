@@ -163,56 +163,47 @@ export function transitionCheckingEligibility(
       }
     }
 
-    // Case 3: Customer not eligible
+    // Case 3: Customer not eligible - transfer to team
     if (enrichment.status === "not_eligible") {
-      const attemptCount = (metadata.triedDnis?.length || 0) + 1;
-
-      if (attemptCount < 3) {
-        const { message } = selectVariant(
-          T.OFFER_DNI_RETRY,
-          "OFFER_DNI_RETRY",
-          {},
-        );
-
-        return {
-          type: "update",
-          nextPhase: { phase: "offering_dni_retry" },
-          commands: [
-            {
-              type: "TRACK_EVENT",
-              event: "eligibility_failed",
-              metadata: {
-                segment: "none",
-                reason: "not_eligible",
-                attemptCount,
-              },
-            },
-            ...message.map((text) => ({ type: "SEND_MESSAGE" as const, text })),
-          ],
-        };
-      }
-
-      // Max attempts reached, close conversation
-      const { message } = selectVariant(
-        T.MAX_ATTEMPTS_REACHED,
-        "MAX_ATTEMPTS_REACHED",
-        {},
-      );
+      const name = enrichment.name ? formatFirstName(enrichment.name) : "Cliente";
+      const variants = S.NON_FNB_TRANSFER;
+      const { message } = selectVariant(variants, "NON_FNB_TRANSFER", {});
 
       return {
         type: "update",
-        nextPhase: { phase: "closing", purchaseConfirmed: false },
+        nextPhase: {
+          phase: "escalated",
+          reason: "not_eligible_transfer",
+        },
         commands: [
           {
             type: "TRACK_EVENT",
             event: "eligibility_failed",
             metadata: {
               segment: "none",
-              reason: "not_eligible_max_attempts",
-              attemptCount,
+              reason: "not_eligible",
             },
           },
-          ...message.map((text) => ({ type: "SEND_MESSAGE" as const, text })),
+          ...message.map((text) => ({
+            type: "SEND_MESSAGE" as const,
+            text,
+          })),
+          {
+            type: "ESCALATE",
+          },
+        ],
+        events: [
+          {
+            type: "attention_required",
+            traceId: createTraceId(),
+            timestamp: Date.now(),
+            payload: {
+              phoneNumber: metadata.phoneNumber || "Unknown",
+              reason: "not_eligible_transfer",
+              clientName: name,
+              dni: phase.dni,
+            },
+          },
         ],
       };
     }

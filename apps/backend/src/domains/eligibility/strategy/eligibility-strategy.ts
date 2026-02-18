@@ -15,68 +15,29 @@ export function evaluateResults(
   results: ProviderResults,
 ): Result<EligibilityEvaluation, SystemOutageError> {
   const fnbFailed = isTechnicalFailure(results.fnb);
-  const powerbiFailed = isTechnicalFailure(results.powerbi);
 
-  // Case 1: Both providers are down
-  if (fnbFailed && powerbiFailed) {
+  // FNB provider is required
+  if (fnbFailed) {
     const fnbError = isProviderError(results.fnb)
       ? results.fnb.error
       : new Error("FNB failed with unknown error");
-    const powerbiError = isProviderError(results.powerbi)
-      ? results.powerbi.error
-      : new Error("PowerBI failed with unknown error");
 
     return Err(
       new SystemOutageError(
         fnbError as ProviderError,
-        powerbiError as ProviderError,
       ),
     );
   }
 
-  // Case 2: FNB available
-  if (!fnbFailed && results.fnb.ok) {
-    const warnings = powerbiFailed
-      ? [
-          {
-            failedProvider: "PowerBI",
-            workingProvider: "FNB",
-            errors: isProviderError(results.powerbi)
-              ? [results.powerbi.error.message]
-              : ["Unknown error"],
-          },
-        ]
-      : undefined;
-
+  // FNB available
+  if (results.fnb.ok) {
     return Ok({
       result: results.fnb.value,
       source: "fnb" as const,
-      warnings,
     });
   }
 
-  // Case 3: PowerBI available (FNB failed or not eligible)
-  if (!powerbiFailed && results.powerbi.ok) {
-    const warnings = fnbFailed
-      ? [
-          {
-            failedProvider: "FNB",
-            workingProvider: "PowerBI",
-            errors: isProviderError(results.fnb)
-              ? [results.fnb.error.message]
-              : ["Unknown error"],
-          },
-        ]
-      : undefined;
-
-    return Ok({
-      result: results.powerbi.value,
-      source: "powerbi" as const,
-      warnings,
-    });
-  }
-
-  // Case 4: Both returned not eligible
+  // Not eligible
   return Ok({
     result: { eligible: false, credit: 0, reason: "not_qualified" },
     source: "fnb" as const,

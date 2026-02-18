@@ -170,3 +170,15 @@ export const SPECIFIC_PRODUCT_ALTERNATIVE = (
     `Pero tengo otros **${category}** con características parecidas. ¿Te las paso?`,
   ],
 ];
+
+export const NON_FNB_TRANSFER = [
+  [
+    "Perfecto, voy a conectarte con mi compañero para que realice tu evaluación y te muestre las opciones disponibles. Se comunicará contigo en unos momentos 😊",
+  ],
+  [
+    "Entendido, déjame transferirte con mi compañero especialista que te evaluará y presentará las mejores opciones para ti. Gracias por tu paciencia 🙌",
+  ],
+  [
+    "Excelente, te pasaré con mi compañero para que haga tu evaluación. Una vez confirmados tus datos, te mostrará todas las opciones que tienes. ¡Gracias! 😊",
+  ],
+];

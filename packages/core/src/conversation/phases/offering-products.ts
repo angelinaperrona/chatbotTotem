@@ -12,6 +12,7 @@ import {
   matchAllProducts,
 } from "../../matching/product-selection.ts";
 import { selectVariant } from "../../messaging/variation-selector.ts";
+import { isCasualGreeting, isFormalGreeting } from "../../messaging/tone-detector.ts";
 import * as S from "../../templates/sales.ts";
 import { isAffirmative } from "../../validation/affirmation.ts";
 import type {
@@ -65,6 +66,22 @@ export function transitionOfferingProducts(
   context?: CatalogSnapshot,
 ): TransitionResult {
   const lower = message.toLowerCase();
+  const normalized = message.toLowerCase().trim();
+
+  // Detect simple greeting to restart conversation (only if message is very short/pure greeting)
+  if ((normalized.length <= 10) && (isCasualGreeting(normalized) || isFormalGreeting(normalized))) {
+    return {
+      type: "update",
+      nextPhase: { phase: "greeting" },
+      commands: [
+        {
+          type: "TRACK_EVENT",
+          event: "greeting_restart",
+          metadata: { from_offering_products: true },
+        },
+      ],
+    };
+  }
 
   if (enrichment) {
     return handleEnrichmentResult(phase, message, enrichment, _metadata);

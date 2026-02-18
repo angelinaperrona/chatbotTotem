@@ -19,7 +19,7 @@ export function mapEligibilityToEnrichment(
   result: EligibilityResult,
 ): Extract<EnrichmentResult, { type: "eligibility_result" }> {
   if (result.needsHuman) {
-    if (result.handoffReason === "both_providers_down") {
+    if (result.handoffReason === "fnb_provider_down") {
       return {
         type: "eligibility_result",
         status: "system_outage",

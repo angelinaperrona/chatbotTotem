@@ -6,6 +6,7 @@ import type {
 import { selectVariant } from "../../messaging/variation-selector.ts";
 import { extractDNI } from "../../validation/regex.ts";
 import { isAffirmative, isNegative } from "../../validation/affirmation.ts";
+import { isCasualGreeting, isFormalGreeting } from "../../messaging/tone-detector.ts";
 import * as T from "../../templates/standard.ts";
 
 export function transitionConfirmingClient(
@@ -13,6 +14,23 @@ export function transitionConfirmingClient(
   metadata: ConversationMetadata,
   enrichment?: EnrichmentResult,
 ): TransitionResult {
+  const normalized = message.toLowerCase().trim();
+
+  // Detect simple greeting to restart conversation (only if message is very short/pure greeting)
+  if ((normalized.length <= 10) && (isCasualGreeting(normalized) || isFormalGreeting(normalized))) {
+    return {
+      type: "update",
+      nextPhase: { phase: "greeting" },
+      commands: [
+        {
+          type: "TRACK_EVENT",
+          event: "greeting_restart",
+          metadata: { from_confirming_client: true },
+        },
+      ],
+    };
+  }
+
   if (enrichment?.type === "recovery_response") {
     return {
       type: "update",

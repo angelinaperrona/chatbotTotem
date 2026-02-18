@@ -2,7 +2,7 @@ import { createLogger } from "../../lib/logger.ts";
 
 const logger = createLogger("providers");
 
-type ProviderName = "fnb" | "gaso" | "powerbi";
+type ProviderName = "fnb" | "gaso";
 
 type HealthStatus = {
   status: "healthy" | "blocked";
@@ -15,7 +15,6 @@ const BLOCK_DURATION_MS = 30 * 60 * 1000; // 30 minutes
 const providers: Map<ProviderName, HealthStatus> = new Map([
   ["fnb", { status: "healthy", lastError: null, blockedUntil: null }],
   ["gaso", { status: "healthy", lastError: null, blockedUntil: null }],
-  ["powerbi", { status: "healthy", lastError: null, blockedUntil: null }],
 ]);
 
 export function isAvailable(provider: ProviderName): boolean {
@@ -65,6 +64,5 @@ export function getAllStatus() {
   return {
     fnb: getStatus("fnb"),
     gaso: getStatus("gaso"),
-    powerbi: getStatus("powerbi"),
   };
 }

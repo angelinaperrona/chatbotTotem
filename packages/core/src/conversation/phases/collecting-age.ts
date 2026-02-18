@@ -10,6 +10,7 @@ import type {
 } from "../types.ts";
 import { selectVariant } from "../../messaging/variation-selector.ts";
 import { extractAge } from "../../validation/regex.ts";
+import { isCasualGreeting, isFormalGreeting } from "../../messaging/tone-detector.ts";
 import * as T from "../../templates/standard.ts";
 import * as S from "../../templates/sales.ts";
 
@@ -26,6 +27,23 @@ export function transitionCollectingAge(
   metadata: ConversationMetadata,
   enrichment?: EnrichmentResult,
 ): TransitionResult {
+  const normalized = message.toLowerCase().trim();
+
+  // Detect simple greeting to restart conversation (only if message is very short/pure greeting)
+  if ((normalized.length <= 10) && (isCasualGreeting(normalized) || isFormalGreeting(normalized))) {
+    return {
+      type: "update",
+      nextPhase: { phase: "greeting" },
+      commands: [
+        {
+          type: "TRACK_EVENT",
+          event: "greeting_restart",
+          metadata: { from_collecting_age: true },
+        },
+      ],
+    };
+  }
+
   if (enrichment?.type === "recovery_response") {
     return {
       type: "update",

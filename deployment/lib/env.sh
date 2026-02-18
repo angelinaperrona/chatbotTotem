@@ -9,10 +9,6 @@ REQUIRED_VARS=(
 	"WHATSAPP_WEBHOOK_VERIFY_TOKEN"
 	"CALIDDA_USERNAME"
 	"CALIDDA_PASSWORD"
-	"POWERBI_RESOURCE_KEY"
-	"POWERBI_REPORT_ID"
-	"POWERBI_DATASET_ID"
-	"POWERBI_MODEL_ID"
 )
 
 validate_env_file() {
@@ -57,13 +53,6 @@ collect_credentials() {
 	echo "Calidda FNB Configuration"
 	CALIDDA_USERNAME=$(prompt_required "CALIDDA_USERNAME")
 	CALIDDA_PASSWORD=$(prompt_secret "CALIDDA_PASSWORD")
-
-	echo ""
-	echo "PowerBI Configuration"
-	POWERBI_RESOURCE_KEY=$(prompt_required "POWERBI_RESOURCE_KEY")
-	POWERBI_REPORT_ID=$(prompt_required "POWERBI_REPORT_ID")
-	POWERBI_DATASET_ID=$(prompt_required "POWERBI_DATASET_ID")
-	POWERBI_MODEL_ID=$(prompt_required "POWERBI_MODEL_ID")
 
 	echo ""
 	echo "Optional Configuration"

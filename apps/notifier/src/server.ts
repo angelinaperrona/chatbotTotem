@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { enqueueMessage } from "./queue.ts";
-import { sendDirectMessage, sendDirectImage } from "./direct-messaging.ts";
+import { sendDirectMessage, sendDirectImage, sendMessage } from "./direct-messaging.ts";
 import { client } from "./whatsapp-client.ts";
 import process from "node:process";
 import { createLogger } from "./logger.ts";
@@ -18,7 +18,7 @@ app.post("/send", async (c) => {
   }
 
   try {
-    const messageId = await sendDirectMessage(phoneNumber, content);
+    const messageId = await sendMessage(phoneNumber, content);
     return c.json({ status: "sent", messageId });
   } catch (error) {
     logger.error({ error, phoneNumber }, "Direct message send failed");

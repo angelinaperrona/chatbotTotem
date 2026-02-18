@@ -16,12 +16,4 @@ export const config = {
       },
     };
   },
-  get powerbi() {
-    return {
-      datasetId: requiredEnv("POWERBI_DATASET_ID"),
-      reportId: requiredEnv("POWERBI_REPORT_ID"),
-      modelId: requiredEnv("POWERBI_MODEL_ID"),
-      resourceKey: requiredEnv("POWERBI_RESOURCE_KEY"),
-    };
-  },
 };

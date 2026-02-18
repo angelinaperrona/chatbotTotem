@@ -2,7 +2,6 @@ import { describe, it, expect, mock, beforeEach, afterEach } from "bun:test";
 import { CheckEligibilityHandler } from "../src/domains/eligibility/handlers/check-eligibility-handler.ts";
 import { RetryEligibilityHandler } from "../src/domains/recovery/handlers/retry-eligibility-handler.ts";
 import { FNBProvider } from "../src/domains/eligibility/providers/fnb-provider.ts";
-import { PowerBIProvider } from "../src/domains/eligibility/providers/powerbi-provider.ts";
 import { initializeEnrichmentRegistry } from "../src/conversation/enrichment/index.ts";
 import { enrichmentRegistry } from "../src/conversation/enrichment/registry.ts";
 import { db } from "../src/db/index.ts";
@@ -40,10 +39,8 @@ describe("Provider outage recovery", () => {
 
     // Initialize enrichment registry
     const fnbProvider = new FNBProvider();
-    const powerbiProvider = new PowerBIProvider();
     const eligibilityHandler = new CheckEligibilityHandler(
       fnbProvider,
-      powerbiProvider,
     );
     enrichmentRegistry.clear();
     initializeEnrichmentRegistry(eligibilityHandler);
@@ -67,23 +64,19 @@ describe("Provider outage recovery", () => {
       }
       if (url.includes("lineaCredito"))
         return new Response("Service Unavailable", { status: 503 });
-      if (url.includes("querydata"))
-        return new Response("Internal Error", { status: 500 });
 
       return new Response("Not Found", { status: 404 });
     }) as any;
 
     const fnbProvider = new FNBProvider();
-    const powerbiProvider = new PowerBIProvider();
     const eligibilityHandler = new CheckEligibilityHandler(
       fnbProvider,
-      powerbiProvider,
     );
     const result = await eligibilityHandler.execute(testDNI, testPhone);
 
     if (result.ok && result.value.type === "eligibility_result") {
       expect(result.value.status).toBe("system_outage");
-      expect(result.value.handoffReason).toBe("both_providers_down");
+      expect(result.value.handoffReason).toBe("fnb_provider_down");
     } else {
       throw new Error("Expected eligibility_result in response");
     }
@@ -120,17 +113,13 @@ describe("Provider outage recovery", () => {
           }),
         );
       }
-      if (url.includes("querydata"))
-        return new Response("Error", { status: 500 });
 
       return new Response("Not Found", { status: 404 });
     }) as any;
 
     const fnbProvider = new FNBProvider();
-    const powerbiProvider = new PowerBIProvider();
     const eligibilityHandler = new CheckEligibilityHandler(
       fnbProvider,
-      powerbiProvider,
     );
     const handler = new RetryEligibilityHandler(eligibilityHandler);
     const result = await handler.execute();

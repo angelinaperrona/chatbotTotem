@@ -7,7 +7,6 @@ export const TIMEOUTS = {
   // External API calls
   FNB_AUTH: 10_000,
   FNB_QUERY: 15_000,
-  POWERBI_QUERY: 20_000,
 
   // WhatsApp API
   WHATSAPP_SEND: 10_000,

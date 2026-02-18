@@ -515,11 +515,11 @@ describe("Conversation transitions (checking eligibility phase)", () => {
     }
   });
 
-  test("should escalate when both providers are down", () => {
+  test("should escalate when FNB provider is down", () => {
     const enrichment: EnrichmentResult = {
       type: "eligibility_result",
-      status: "needs_human",
-      handoffReason: "both_providers_down",
+      status: "system_outage",
+      handoffReason: "fnb_provider_down",
     };
 
     const result = transition({

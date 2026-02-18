@@ -4,6 +4,7 @@ import type {
   ConversationMetadata,
   EnrichmentResult,
 } from "../types.ts";
+import { isCasualGreeting, isFormalGreeting } from "../../messaging/tone-detector.ts";
 
 type ClosingPhase = Extract<ConversationPhase, { phase: "closing" }>;
 
@@ -14,6 +15,21 @@ export function transitionClosing(
   enrichment?: EnrichmentResult,
 ): TransitionResult {
   const normalized = message.toLowerCase().trim();
+
+  // Detect simple greeting to restart conversation (only if message is very short/pure greeting)
+  if ((normalized.length <= 10) && (isCasualGreeting(normalized) || isFormalGreeting(normalized))) {
+    return {
+      type: "update",
+      nextPhase: { phase: "greeting" },
+      commands: [
+        {
+          type: "TRACK_EVENT",
+          event: "greeting_restart",
+          metadata: { from_closing: true },
+        },
+      ],
+    };
+  }
 
   // Detect new purchase intent
   const newPurchaseKeywords = [
